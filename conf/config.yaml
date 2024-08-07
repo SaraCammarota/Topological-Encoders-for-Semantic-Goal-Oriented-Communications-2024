@@ -1,0 +1,5 @@
+defaults:
+  - dataset: dataset_config
+  - my_model: model_config
+  - pooling: pooling_conf
+  - training: train_conf

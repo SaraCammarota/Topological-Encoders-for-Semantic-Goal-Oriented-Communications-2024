@@ -1,0 +1,34 @@
+
+metric:
+  name: train_loss
+  goal: minimize
+
+seed: 42
+data_seed: 0
+
+layers: 
+  hsize: 32
+  n_pre: 2
+  n_post: 1
+  n_conv: 8
+  n_dgm_layers: 4
+
+dgm: 
+  gamma: 50
+  std: 0.0
+
+
+dropout: 0.0
+use_gcn: true
+lr: 0.005
+#k: 4
+
+
+channel:
+  noise: 'awgn'
+  snr_db: 13
+
+graph_loss_reg: 1
+poly_loss_reg: 1
+ensemble_steps: 1
+

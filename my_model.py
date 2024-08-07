@@ -1,0 +1,154 @@
+import torch
+import torch.nn.functional as F
+from torchmetrics import Accuracy
+from torch_geometric.nn import global_mean_pool
+import pytorch_lightning as pl
+from layers import MLP, GNN, DGM, NoiseBlock
+from torch_geometric.nn.pool import TopKPooling
+import hydra
+from omegaconf import DictConfig
+
+class Model_channel(pl.LightningModule):
+    def __init__(self, hparams):
+
+        super(Model_channel, self).__init__()
+        torch.manual_seed(42)
+        torch.cuda.manual_seed(42)
+
+        self.save_hyperparameters(hparams)
+        self.pre = MLP(hparams["pre_layers"], dropout = hparams["dropout"])
+        self.gnn = GNN(hparams["conv_layers"], dropout = hparams["dropout"])
+        self.pool = TopKPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"],) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
+        self.noise = NoiseBlock()
+        self.snr_db = hparams["snr_db"]
+
+        if hparams["use_gcn"]:
+            self.graph_f = DGM(
+                GNN(hparams["dgm_layers"], dropout=hparams["dropout"]),
+                gamma=hparams["gamma"],
+                std=hparams["std"],
+            )
+        else:
+            self.graph_f = DGM(
+                MLP(hparams["dgm_layers"], dropout=hparams["dropout"]),
+                gamma=hparams["gamma"],
+                std=hparams["std"],
+
+            )
+
+        self.post = MLP(hparams["post_layers"], dropout = hparams["dropout"])
+
+        self.avg_accuracy = None
+
+        if hparams["num_classes"] > 2:
+            self.train_acc = Accuracy(task='multiclass', num_classes=hparams["num_classes"], average='macro')
+            self.val_acc = Accuracy(task='multiclass', num_classes=hparams["num_classes"], average='macro')
+            self.test_acc = Accuracy(task='multiclass', num_classes=hparams["num_classes"], average='macro')
+        elif hparams["num_classes"] == 2:
+            self.train_acc = Accuracy(task='binary', num_classes=2)
+            self.val_acc = Accuracy(task='binary', num_classes=2)
+            self.test_acc = Accuracy(task='binary', num_classes=2)
+        else:
+
+            raise ValueError(f"Invalid number of classes ({hparams['num_classes']}).")
+
+    def forward(self, data):
+        '''
+        data: a batch of data. Must have attributes: x, batch, ptr
+        '''
+
+
+        x = data.x.detach()
+        batch = data.batch
+        ptr = data.ptr
+        x = self.pre(x)
+        # LTI
+        x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
+        # FEATURE EXTRACTION
+        x = self.gnn(x, edges)
+
+        # POOLING  -- how is compression rate defined in this case? rho = k/n where k: num nodes in input; n: num nodes in output. num_features is fixed for now.
+        # compression is the "ratio" argument passed to topkpooling.
+
+        pool_output = self.pool(x, edges, batch = batch)
+        x = pool_output[0]
+        edges = pool_output[1]
+        batch = pool_output[3]
+
+        #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
+        x = self.noise(x, self.snr_db)
+
+        x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
+        x = self.post(x)
+
+        return x, edges, ne_probs
+
+    def configure_optimizers(self):
+        if self.hparams["optimizer"] == "adam":
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams["lr"])
+        elif self.hparams["optimizer"] == 'sgd':
+            optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams["lr"], momentum=0.9)
+        else:
+            raise ValueError("Unsupported optimizer; choose 'adam' or 'sgd'.")
+
+
+        return optimizer
+
+    def training_step(self, batch, batch_idx):
+        pred, _, _ = self(batch)
+        train_lab = batch.y
+        tr_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(train_lab).float())
+
+        if torch.isnan(tr_loss).any() or torch.isnan(pred).any():
+            print(f"NaN detected in training data or loss at batch {batch_idx}")
+            print(f"Predictions: {pred}, Labels: {train_lab}")
+
+
+
+        self.log("train_acc", self.train_acc(pred.softmax(-1).argmax(-1), train_lab), on_step=False, on_epoch=True, prog_bar = True)
+        self.log("train_loss", tr_loss, on_step=False, on_epoch=True, prog_bar = True)
+        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
+
+        return tr_loss
+
+
+    def validation_step(self, batch, batch_idx):
+        val_lab = batch.y
+        pred, _, _ = self(batch)
+        # print(pred.shape)
+        # print(F.one_hot(val_lab).float().shape)
+        val_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(val_lab).float())
+
+        if torch.isnan(val_loss).any() or torch.isnan(pred).any():
+            print(f"NaN detected in validation data or loss at batch {batch_idx}")
+            print(f"Predictions: {pred}, Labels: {val_lab}")
+
+        val_acc = self.val_acc(pred.softmax(-1).argmax(-1), val_lab)
+        #self.validation_step_outputs.append(val_acc)
+
+        self.log("val_acc", val_acc, on_step=False, on_epoch=True, prog_bar = True)
+        self.log("val_loss", val_loss, on_step=False, on_epoch=True, prog_bar = True)
+
+    # def on_validation_epoch_end(self):
+    #   epoch_average = torch.stack(self.validation_step_outputs).mean()
+    #   self.log("validation_epoch_average", epoch_average)
+    #   self.validation_step_outputs.clear()  # free memory
+
+    def test_step(self, batch, batch_idx):
+        test_lab = batch.y
+        pred, _, _ = self(batch)
+
+
+        for _ in range(1, self.hparams.ensemble_steps):
+            pred_, _, _ = self(batch)
+            pred += pred_
+
+        self.test_acc(pred.softmax(-1).argmax(-1), test_lab)
+        self.log(
+            "test_acc",
+            self.test_acc,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+            batch_size=test_lab.size(0),
+        )
