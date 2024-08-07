@@ -60,6 +60,9 @@ def main(config: DictConfig):
 
 
 
+#TODO: make different config files for different poolings and integrate in the hparams and self.pool of the model
+#TODO: create functions for repeating the experiment and plotting the accuracy.
+
 
 if __name__ == "__main__":
     main()
