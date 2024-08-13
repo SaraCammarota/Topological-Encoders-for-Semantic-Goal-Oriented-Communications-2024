@@ -13,10 +13,6 @@ layers:
   n_conv: 8
   n_dgm_layers: 4
 
-dgm: 
-  gamma: 50
-  std: 0.0
-
 
 dropout: 0.0
 use_gcn: true

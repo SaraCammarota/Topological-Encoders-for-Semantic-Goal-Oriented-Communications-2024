@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torchmetrics import Accuracy
 from torch_geometric.nn import global_mean_pool
 import pytorch_lightning as pl
-from layers import MLP, GNN, DGM, NoiseBlock
+from layers import MLP, GNN, DGM, NoiseBlock, DGM_d
 from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 import hydra
 from omegaconf import DictConfig
@@ -32,19 +32,35 @@ class Model_channel(pl.LightningModule):
         #self.snr_db = hparams["snr_db"]
         self.snr_db = None    # in this way, a different snr value is sampled at every forward pass
 
-        if hparams["use_gcn"]:
+        if hparams["use_gcn"] and (hparams["dgm_name"] == 'alpha_dgm'):
             self.graph_f = DGM(
                 GNN(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 gamma=hparams["gamma"],
                 std=hparams["std"],
             )
-        else:
+        elif (not hparams["use_gcn"]) and (hparams["dgm_name"] == 'alpha_dgm') :
             self.graph_f = DGM(
                 MLP(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 gamma=hparams["gamma"],
                 std=hparams["std"],
 
             )
+
+        elif hparams["use_gcn"] and (hparams["dgm_name"] == 'topk_dgm'):
+            self.graph_f = DGM_d(
+                GNN(hparams["dgm_layers"], dropout=hparams["dropout"]),
+                k=hparams["k"],
+                distance=hparams["distance"],
+            )
+        elif (not hparams["use_gcn"]) and (hparams["dgm_name"] == 'topk_dgm') :
+            self.graph_f = DGM_d(
+                MLP(hparams["dgm_layers"], dropout=hparams["dropout"]),
+                k=hparams["k"],
+                distance=hparams["distance"],
+
+            )
+
+        self.dgm_name = hparams["dgm_name"]
 
         self.post = MLP(hparams["post_layers"], dropout = hparams["dropout"])
 
@@ -73,7 +89,10 @@ class Model_channel(pl.LightningModule):
         ptr = data.ptr
         x = self.pre(x)
         # LTI
-        x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
+        if self.dgm_name == 'alpha_dgm':
+            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
+        elif self.dgm_name == 'topk_dgm':
+            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"])  
         # FEATURE EXTRACTION
         x = self.gnn(x, edges)
 

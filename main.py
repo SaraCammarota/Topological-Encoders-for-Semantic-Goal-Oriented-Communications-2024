@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 
-
+@hydra.main(version_base=None, config_path="conf", config_name="config")
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
 
@@ -89,11 +89,9 @@ def train_and_plot(config: DictConfig):
 
 
 
-
-
-#TODO: change alpha-entmax to gumbel topk trick (make two different config files) 
-
-
 if __name__ == "__main__":
-    train_and_plot()
+    #train_and_plot()
+    trainer, channel, train_loader, val_loader = setup_training()
+    trainer.fit(channel, train_dataloaders=train_loader, val_dataloaders=val_loader)
+
 

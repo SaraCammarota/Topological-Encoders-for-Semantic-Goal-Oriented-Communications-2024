@@ -4,7 +4,7 @@ import torch.nn.init as init
 from torch_geometric.nn import GCNConv
 from utils import *
 import torch
-#from pykeops.torch import LazyTensor   #I have problems with pykeops (no compiler?)
+from pykeops.torch import LazyTensor   #I have problems with pykeops (no compiler?)
 
 
 class GNN(nn.Module):
