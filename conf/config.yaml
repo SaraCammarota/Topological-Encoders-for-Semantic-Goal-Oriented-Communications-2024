@@ -3,3 +3,4 @@ defaults:
   - my_model: model_config
   - pooling: pooling_conf
   - training: train_conf
+  - exp: snr_conf

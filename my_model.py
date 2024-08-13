@@ -4,7 +4,7 @@ from torchmetrics import Accuracy
 from torch_geometric.nn import global_mean_pool
 import pytorch_lightning as pl
 from layers import MLP, GNN, DGM, NoiseBlock
-from torch_geometric.nn.pool import TopKPooling
+from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 import hydra
 from omegaconf import DictConfig
 
@@ -18,9 +18,19 @@ class Model_channel(pl.LightningModule):
         self.save_hyperparameters(hparams)
         self.pre = MLP(hparams["pre_layers"], dropout = hparams["dropout"])
         self.gnn = GNN(hparams["conv_layers"], dropout = hparams["dropout"])
-        self.pool = TopKPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"],) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
+        self.pooling_type = hparams["pooling"]
+        if self.pooling_type == 'topk': 
+            self.pool = TopKPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"],) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
+        elif self.pooling_type == 'edge':
+            self.pool = EdgePooling(in_channels = hparams["conv_layers"][-1])
+        elif self.pooling_type == 'sag': 
+            self.pool = SAGPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"])      
+        elif self.pooling_type == 'asa': 
+            self.pool = ASAPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"])      
+          
         self.noise = NoiseBlock()
-        self.snr_db = hparams["snr_db"]
+        #self.snr_db = hparams["snr_db"]
+        self.snr_db = None    # in this way, a different snr value is sampled at every forward pass
 
         if hparams["use_gcn"]:
             self.graph_f = DGM(
@@ -68,12 +78,15 @@ class Model_channel(pl.LightningModule):
         x = self.gnn(x, edges)
 
         # POOLING  -- how is compression rate defined in this case? rho = k/n where k: num nodes in input; n: num nodes in output. num_features is fixed for now.
-        # compression is the "ratio" argument passed to topkpooling.
+        # compression is the "ratio" argument.
 
-        pool_output = self.pool(x, edges, batch = batch)
+        pool_output = self.pool(x = x, edge_index = edges, batch = batch)
         x = pool_output[0]
         edges = pool_output[1]
-        batch = pool_output[3]
+        if self.pooling_type in ['topk', 'sag', 'asa']: 
+            batch = pool_output[3]
+        elif self.pooling_type == 'edge':
+            batch = pool_output[2]
 
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
         x = self.noise(x, self.snr_db)

@@ -1,0 +1,10 @@
+Error executing job with overrides: []
+Traceback (most recent call last):
+  File "C:\Users\HP\OneDrive\Documenti\GitHub\with_hydra\main.py", line 62, in main
+    channel = Model_channel(hparams)
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\OneDrive\Documenti\GitHub\with_hydra\my_model.py", line 21, in __init__
+    self.pooling_type = hparams["pooling"]
+                        ~~~~~~~^^^^^^^^^^^
+KeyError: 'pooling'
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

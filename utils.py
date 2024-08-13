@@ -3,6 +3,8 @@ import torch.nn as nn
 from entmax import entmax15  
 from omegaconf import DictConfig
 from torch_geometric.data import Batch
+import matplotlib.pyplot as plt
+    
 
 
 class LayerNorm(nn.Module):
@@ -98,10 +100,13 @@ def create_hyperparameters(config: DictConfig):
         "dropout": config.my_model.dropout,
         "ensemble_steps": config.my_model.ensemble_steps,
         "optimizer": "adam",
+        "pooling": config.pooling.pooling_type,
         "ratio": config.pooling.pooling_ratio,
         "topk_minscore": config.pooling.topk_minscore,
         "snr_db": config.my_model.channel.snr_db
     }
+
+
     return hyperparams
 
 
@@ -110,3 +115,18 @@ def create_hyperparameters(config: DictConfig):
 
 def custom_collate(batch):
     return Batch.from_data_list(batch)
+
+
+
+def plot_results(validation_accuracies, snr_values, pooling_ratios, pooling_name):
+
+    for idx, ratio in enumerate(pooling_ratios):
+        plt.plot(snr_values, validation_accuracies[idx], label=f'Ratio: {ratio}')
+
+    plt.xlabel('Validate SNR (dB)')
+    plt.ylabel('Validation/Best Accuracy')
+    plt.title('Accuracy vs. SNR')
+    plt.legend(title='Compression Levels')
+    plt.show()
+    plt.savefig(f'accuracy_vs_snr_{pooling_name}.png')
+    plt.close()

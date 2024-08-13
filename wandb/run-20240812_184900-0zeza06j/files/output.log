@@ -1,0 +1,31 @@
+GPU available: False, used: False
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+  | Name      | Type           | Params | Mode
+-----------------------------------------------------
+0 | pre       | MLP            | 1.2 K  | train
+1 | gnn       | GNN            | 7.4 K  | train
+2 | pool      | ASAPooling     | 1.2 K  | train
+3 | noise     | NoiseBlock     | 0      | train
+4 | graph_f   | DGM            | 4.2 K  | train
+5 | post      | MLP            | 66     | train
+6 | train_acc | BinaryAccuracy | 0      | train
+7 | val_acc   | BinaryAccuracy | 0      | train
+8 | test_acc  | BinaryAccuracy | 0      | train
+-----------------------------------------------------
+14.1 K    Trainable params
+0         Non-trainable params
+14.1 K    Total params
+0.056     Total estimated model params size (MB)
+64        Modules in train mode
+0         Modules in eval mode
+C:\Users\HP\anaconda3\Lib\site-packages\pytorch_lightning\trainer\connectors\data_connector.py:424: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=7` in the `DataLoader` to improve performance.
+C:\Users\HP\anaconda3\Lib\site-packages\torch_geometric\utils\sparse.py:268: UserWarning: Sparse CSR tensor support is in beta state. If you miss a functionality in the sparse tensor support, please submit a feature request to https://github.com/pytorch/pytorch/issues. (Triggered internally at C:\b\abs_8f7uhuge1i\croot\pytorch-select_1717607507421\work\aten\src\ATen\SparseCsrTensorImpl.cpp:55.)
+  adj = torch.sparse_csr_tensor(
+C:\Users\HP\anaconda3\Lib\site-packages\pytorch_lightning\utilities\data.py:78: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 2. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+C:\Users\HP\anaconda3\Lib\site-packages\pytorch_lightning\trainer\connectors\data_connector.py:424: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=7` in the `DataLoader` to improve performance.
+C:\Users\HP\anaconda3\Lib\site-packages\pytorch_lightning\loops\fit_loop.py:298: The number of training batches (7) is smaller than the logging interval Trainer(log_every_n_steps=10). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+
+Epoch 2: 100%|█████████████████████████████████████████████████████████████████| 7/7 [00:01<00:00,  4.64it/s, v_num=a06j, val_acc=0.604, val_loss=0.669, train_acc=0.600, train_loss=0.678]
+Validation DataLoader 0:   0%|                                                                                                                                       | 0/1 [00:00<?, ?it/s]
+
