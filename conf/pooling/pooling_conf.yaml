@@ -1,4 +1,4 @@
 
-pooling_type: 'sag'
-pooling_ratio: 0.3
+pooling_type: 'topk'
+pooling_ratio: null
 topk_minscore: 0.1

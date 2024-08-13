@@ -8,10 +8,10 @@ data_seed: 0
 
 layers: 
   hsize: 32
-  n_pre: 2
+  n_pre: 1
   n_post: 1
-  n_conv: 8
-  n_dgm_layers: 4
+  n_conv: 1
+  n_dgm_layers: 1
 
 
 dropout: 0.0

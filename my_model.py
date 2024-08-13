@@ -27,6 +27,7 @@ class Model_channel(pl.LightningModule):
             self.pool = SAGPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"])      
         elif self.pooling_type == 'asa': 
             self.pool = ASAPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"])      
+        
           
         self.noise = NoiseBlock()
         #self.snr_db = hparams["snr_db"]
@@ -60,6 +61,9 @@ class Model_channel(pl.LightningModule):
 
             )
 
+        elif hparams["dgm_name"] == 'no_dgm':
+            self.graph_f = GNN(hparams["dgm_layers"], dropout=hparams["dropout"])
+
         self.dgm_name = hparams["dgm_name"]
 
         self.post = MLP(hparams["post_layers"], dropout = hparams["dropout"])
@@ -83,6 +87,7 @@ class Model_channel(pl.LightningModule):
         data: a batch of data. Must have attributes: x, batch, ptr
         '''
 
+        # TODO add workaround for dgm and see wrt different poolings our performances
 
         x = data.x.detach()
         batch = data.batch
@@ -92,7 +97,12 @@ class Model_channel(pl.LightningModule):
         if self.dgm_name == 'alpha_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
         elif self.dgm_name == 'topk_dgm':
-            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"])  
+            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"]) 
+        elif self.dgm_name == 'no_dgm': 
+            x = self.graph_f(x, data["edge_index"]) 
+            edges = data["edge_index"]
+            ne_probs = None
+
         # FEATURE EXTRACTION
         x = self.gnn(x, edges)
 
@@ -111,6 +121,7 @@ class Model_channel(pl.LightningModule):
         x = self.noise(x, self.snr_db)
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
+        # TODO if noise is mean zero
         x = self.post(x)
 
         return x, edges, ne_probs

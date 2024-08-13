@@ -1,0 +1,45 @@
+{
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.11.7",
+    "heartbeatAt": "2024-08-13T15:58:36.637350",
+    "startedAt": "2024-08-13T15:58:34.649010",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\HP\\OneDrive\\Documenti\\GitHub\\with_hydra\\main.py",
+    "codePathLocal": "main.py",
+    "codePath": "main.py",
+    "git": {
+        "remote": "https://github.com/SaraCammarota/with_hydra.git",
+        "commit": "3165da443d642ce0964eef3f0c72ab215e1381e9"
+    },
+    "email": "113464644+SaraCammarota@users.noreply.github.com",
+    "root": "C:/Users/HP/OneDrive/Documenti/GitHub/with_hydra",
+    "host": "HP",
+    "username": "HP",
+    "executable": "C:\\Users\\HP\\anaconda3\\python.exe",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 2600.0,
+        "min": 0.0,
+        "max": 2600.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2600.0,
+            "min": 0.0,
+            "max": 2600.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 487.6579170227051,
+            "used": 191.8026123046875
+        }
+    },
+    "memory": {
+        "total": 15.312740325927734
+    }
+}

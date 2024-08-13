@@ -90,8 +90,8 @@ def train_and_plot(config: DictConfig):
 
 
 if __name__ == "__main__":
-    #train_and_plot()
-    trainer, channel, train_loader, val_loader = setup_training()
-    trainer.fit(channel, train_dataloaders=train_loader, val_dataloaders=val_loader)
+    train_and_plot()
+    # trainer, channel, train_loader, val_loader = setup_training()
+    # trainer.fit(channel, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
 

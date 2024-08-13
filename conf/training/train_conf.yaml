@@ -1,2 +1,2 @@
-max_epochs: 2
+max_epochs: 10
 lr: 0.05

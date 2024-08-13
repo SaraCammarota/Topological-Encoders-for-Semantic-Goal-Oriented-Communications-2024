@@ -1,0 +1,134 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.7
+    cli_version: 0.16.6
+    framework: lightning
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1723565739.0
+    t:
+      1:
+      - 1
+      - 5
+      - 9
+      - 50
+      - 53
+      - 55
+      - 77
+      - 103
+      2:
+      - 1
+      - 5
+      - 9
+      - 50
+      - 53
+      - 55
+      - 77
+      - 103
+      3:
+      - 7
+      - 23
+      4: 3.11.7
+      5: 0.16.6
+      8:
+      - 3
+      - 5
+      13: windows-amd64
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+    - 1: val_acc
+      5: 1
+      6:
+      - 1
+    - 1: val_loss
+      5: 1
+      6:
+      - 1
+    - 1: epoch
+      5: 1
+      6:
+      - 1
+    - 1: train_acc
+      5: 1
+      6:
+      - 1
+    - 1: train_loss
+      5: 1
+      6:
+      - 1
+    - 1: test_acc
+      5: 1
+      6:
+      - 1
+num_features:
+  desc: null
+  value: 3
+num_classes:
+  desc: null
+  value: 2
+pre_layers:
+  desc: null
+  value:
+  - 3
+  - 32
+conv_layers:
+  desc: null
+  value:
+  - 32
+post_layers:
+  desc: null
+  value:
+  - 32
+  - 2
+dgm_layers:
+  desc: null
+  value:
+  - 32
+  - 32
+lr:
+  desc: null
+  value: 0.05
+dgm_name:
+  desc: null
+  value: no_dgm
+gamma:
+  desc: null
+  value: 0
+std:
+  desc: null
+  value: 0
+k:
+  desc: null
+  value: 0
+distance:
+  desc: null
+  value: euclidean
+use_gcn:
+  desc: null
+  value: true
+dropout:
+  desc: null
+  value: 0.0
+ensemble_steps:
+  desc: null
+  value: 1
+optimizer:
+  desc: null
+  value: adam
+pooling:
+  desc: null
+  value: topk
+ratio:
+  desc: null
+  value: 0.8
+topk_minscore:
+  desc: null
+  value: 0.1
+snr_db:
+  desc: null
+  value: 13
