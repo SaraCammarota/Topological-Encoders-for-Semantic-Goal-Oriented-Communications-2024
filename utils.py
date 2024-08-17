@@ -120,11 +120,10 @@ def custom_collate(batch):
     return Batch.from_data_list(batch)
 
 
-
-def plot_results(validation_accuracies, snr_values, pooling_ratios, pooling_name):
+def plot_results(validation_accuracies, validation_std_devs, snr_values, pooling_ratios, pooling_name):
 
     for idx, ratio in enumerate(pooling_ratios):
-        plt.plot(snr_values, validation_accuracies[idx], label=f'Ratio: {ratio}')
+        plt.errorbar(snr_values, validation_accuracies[idx], yerr=validation_std_devs[idx], label=f'Ratio: {ratio}', capsize=5)
 
     plt.xlabel('Validate SNR (dB)')
     plt.ylabel('Validation/Best Accuracy')

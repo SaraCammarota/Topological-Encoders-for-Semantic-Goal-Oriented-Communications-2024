@@ -59,6 +59,7 @@ def setup_training(config):
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def train_and_plot(config: DictConfig):
     validation_accuracies = []
+    validation_std_devs = []
 
     for ratio in config.exp.pooling_ratios:
         
@@ -68,6 +69,7 @@ def train_and_plot(config: DictConfig):
         trainer.fit(channel, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
         snr_accuracies = []
+        snr_std_devs = []
 
         for snr in config.exp.test_snr_val:
             trial_accuracies = []
@@ -78,12 +80,15 @@ def train_and_plot(config: DictConfig):
                 trial_accuracies.append(test_result[0]['test_acc'])
 
             average_accuracy = np.mean(trial_accuracies)
+            std_dev_accuracy = np.std(trial_accuracies)
+
             snr_accuracies.append(average_accuracy)
+            snr_std_devs.append(std_dev_accuracy) 
         
         validation_accuracies.append(snr_accuracies)
-    
-    plot_results(validation_accuracies, config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type)
+        validation_std_devs.append(snr_std_devs)
 
+    plot_results(validation_accuracies, validation_std_devs, config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type)
 
 
 

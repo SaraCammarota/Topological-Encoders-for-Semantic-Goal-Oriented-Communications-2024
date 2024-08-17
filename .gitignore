@@ -1,1 +1,4 @@
-.ckpt
+
+experiments-with-hydra
+outputs
+wandb
