@@ -5,11 +5,12 @@ import pytorch_lightning as pl
 from layers import *
 from utils import *
 from torch.utils.data import DataLoader
-from loaders import GraphLoader
+from loaders import GraphLoader, PreProcessor
 from pytorch_lightning.loggers import WandbLogger
 import wandb
 import numpy as np
 import matplotlib.pyplot as plt
+from loaders import *
 
 
 
@@ -17,21 +18,37 @@ import matplotlib.pyplot as plt
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
 
-    loader = GraphLoader(
+  # Instantiate and load dataset
+    
+    dataset_loader = GraphLoader(DictObj(
         {"data_dir": "../data",
           "data_name": config.dataset.loader.parameters.data_name, 
-          "split_type": config.dataset.split_params.split_type},
+          "split_type": config.dataset.split_params.split_type}), 
             transforms = True)
     
-    datasets = loader.load()
 
-    train_data, validation_data, test_data = datasets
+    dataset, dataset_dir = dataset_loader.load()
+    # Preprocess dataset and load the splits
+    
+    transform_config = None
+    preprocessor = PreProcessor(dataset, dataset_dir, transform_config)
+    train_data, validation_data, test_data = preprocessor.load_dataset_splits(config.dataset.split_params)
+
+    # loader = GraphLoader(
+    #     {"data_dir": "../data",
+    #       "data_name": config.dataset.loader.parameters.data_name, 
+    #       "split_type": config.dataset.split_params.split_type},
+    #         transforms = True)
+    
+    # datasets = loader.load()
+
+    # train_data, validation_data, test_data = datasets
 
     train_loader = DataLoader(
         train_data, 
         batch_size=config.dataset.dataloader_params.batch_size, 
         shuffle=config.dataset.dataloader_params.get('shuffle', True), 
-        collate_fn=custom_collate, 
+        #collate_fn=custom_collate, 
         num_workers=config.dataset.dataloader_params.num_workers,
         pin_memory=config.dataset.dataloader_params.pin_memory
         )
@@ -40,7 +57,7 @@ def setup_training(config):
         validation_data, 
         batch_size=config.dataset.dataloader_params.batch_size, 
         shuffle=False, 
-        collate_fn=custom_collate, 
+        #collate_fn=custom_collate, 
         num_workers=config.dataset.dataloader_params.num_workers,
         pin_memory=config.dataset.dataloader_params.pin_memory
         )

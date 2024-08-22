@@ -61,8 +61,8 @@ class Model_channel(pl.LightningModule):
 
             )
 
-        elif hparams["dgm_name"] == 'no_dgm':
-            self.graph_f = GNN(hparams["dgm_layers"], dropout=hparams["dropout"])
+        # elif hparams["dgm_name"] == 'no_dgm':
+        #     self.graph_f = GNN(hparams["dgm_layers"], dropout=hparams["dropout"])
 
         self.dgm_name = hparams["dgm_name"]
 
@@ -87,8 +87,7 @@ class Model_channel(pl.LightningModule):
         data: a batch of data. Must have attributes: x, batch, ptr
         '''
 
-        # TODO add workaround for dgm and see wrt different poolings our performances
-
+        
         x = data.x.detach()
         batch = data.batch
         ptr = data.ptr
@@ -99,11 +98,11 @@ class Model_channel(pl.LightningModule):
         elif self.dgm_name == 'topk_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"]) 
         elif self.dgm_name == 'no_dgm': 
-            x_aux = self.graph_f(x, data["edge_index"]) 
+            # x_aux = self.graph_f(x, data["edge_index"]) 
             edges = data["edge_index"]
             ne_probs = None
 
-        x = x_aux
+        
 
         # FEATURE EXTRACTION
         x = self.gnn(x, edges)
