@@ -145,33 +145,6 @@ def sparse_eye(size):
 
 
 class DGM_d(nn.Module):
-    def __init__(self, embed_f, k=5, distance="euclidean", sparse=True):
-        super(DGM_d, self).__init__()
-        
-        self.sparse=sparse
-        
-        self.temperature = nn.Parameter(torch.tensor(1. if distance=="hyperbolic" else 4.).float())
-        self.embed_f = embed_f
-        self.centroid=None
-        self.scale=None
-        self.k = k
-        self.distance = distance
-        
-        self.debug=False
-        
-    def forward(self, x, A, not_used=None, fixedges=None):
-        if x.shape[0]==1:
-            x = x[0]
-        x = self.embed_f(x,A)
-        if x.dim()==2:
-            x = x[None,...]
-    
-        if self.training:
-            if fixedges is not None:                
-                return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
-            #sampling here
-            edges_hat,
-class DGM_d(nn.Module):
     def __init__(self, embed_f, k=5, distance=pairwise_euclidean_distances, sparse=True):
         super(DGM_d, self).__init__()
         
@@ -221,6 +194,9 @@ class DGM_d(nn.Module):
     
 
     def sample_without_replacement(self, logits):
+        if logits.dim() == 2:
+        # questo l'ho aggiunto io perche non funzionava niente. devo capire se c'e' un problema con il caricamento dei dati per cui non viene fuori la batch dimension
+            logits = logits.unsqueeze(0)
         b,n,_ = logits.shape
 #         logits = logits * torch.exp(self.temperature*10)
         logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))

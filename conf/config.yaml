@@ -1,7 +1,7 @@
 defaults:
   - dataset: dataset_config
   - my_model: model_config
-  - dgm: topk_dgm_conf
+  - dgm: alpha_dgm_conf
   - pooling: pooling_conf
   - training: train_conf
   - exp: snr_conf

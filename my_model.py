@@ -99,9 +99,11 @@ class Model_channel(pl.LightningModule):
         elif self.dgm_name == 'topk_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"]) 
         elif self.dgm_name == 'no_dgm': 
-            x = self.graph_f(x, data["edge_index"]) 
+            x_aux = self.graph_f(x, data["edge_index"]) 
             edges = data["edge_index"]
             ne_probs = None
+
+        x = x_aux
 
         # FEATURE EXTRACTION
         x = self.gnn(x, edges)
