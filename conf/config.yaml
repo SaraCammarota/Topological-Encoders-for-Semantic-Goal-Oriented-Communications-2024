@@ -1,7 +1,7 @@
 defaults:
-  - dataset: proteins
+  - dataset: nci1
   - my_model: model_config
-  - dgm: no_dgm_conf
+  - dgm: topk_dgm_conf
   - pooling: pooling_conf
   - training: train_conf
   - exp: snr_conf

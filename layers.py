@@ -118,9 +118,17 @@ class NoiseBlock(nn.Module):
 
 
 
-#Euclidean distance
-def pairwise_euclidean_distances(x, dim=-1):
-    dist = torch.cdist(x,x)**2
+# #Euclidean distance
+# def pairwise_euclidean_distances(x, dim=-1):
+#     dist = torch.cdist(x,x)**2
+#     return dist, x
+
+def pairwise_euclidean_distances(x, batch):
+    # Batch is a vector indicating the graph each node belongs to
+    dist = torch.zeros(x.size(0), x.size(0)).to(x.device)
+    for graph_id in batch.unique():
+        mask = (batch == graph_id)
+        dist[mask][:, mask] = torch.cdist(x[mask], x[mask])**2
     return dist, x
 
 # #Poincarè disk distance r=1 (Hyperbolic)
@@ -164,7 +172,9 @@ class DGM_d(nn.Module):
         
     def forward(self, x, A, not_used=None, fixedges=None):
         x = self.embed_f(x,A)  
-        
+        print('questo è il valore di x')
+        print(x)
+        print(x.shape)
         if self.training:
             if fixedges is not None:                
                 return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
@@ -181,6 +191,10 @@ class DGM_d(nn.Module):
                 D, _x = self.distance(x)
 
                 #sampling here
+
+                print('questo è il valore di D distanza')
+                print(D)
+                print(D.shape)
                 edges_hat, logprobs = self.sample_without_replacement(D)
 
               
@@ -193,21 +207,42 @@ class DGM_d(nn.Module):
         return x, edges_hat, logprobs
     
 
-    def sample_without_replacement(self, logits):
-        # if logits.dim() == 2:
-        # # questo l'ho aggiunto io perche non funzionava niente. devo capire se c'e' un problema con il caricamento dei dati per cui non viene fuori la batch dimension
-        #     logits = logits.unsqueeze(0)
-        b,n,_ = logits.shape
-#         logits = logits * torch.exp(self.temperature*10)
-        logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))
+#     def sample_without_replacement(self, logits):
+#         # if logits.dim() == 2:
+#         # # questo l'ho aggiunto io perche non funzionava niente. devo capire se c'e' un problema con il caricamento dei dati per cui non viene fuori la batch dimension
+#         #     logits = logits.unsqueeze(0)
+#         b,n,_ = logits.shape
+# #         logits = logits * torch.exp(self.temperature*10)
+#         logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))
         
-        q = torch.rand_like(logits) + 1e-8
-        lq = (logits-torch.log(-torch.log(q)))
-        logprobs, indices = torch.topk(-lq,self.k)  
+#         q = torch.rand_like(logits) + 1e-8
+#         lq = (logits-torch.log(-torch.log(q)))
+#         logprobs, indices = torch.topk(-lq,self.k)  
     
-        rows = torch.arange(n).view(1,n,1).to(logits.device).repeat(b,1,self.k)
-        edges = torch.stack((indices.view(b,-1),rows.view(b,-1)),-2)
+#         rows = torch.arange(n).view(1,n,1).to(logits.device).repeat(b,1,self.k)
+#         edges = torch.stack((indices.view(b,-1),rows.view(b,-1)),-2)
         
+#         if self.sparse:
+#             return (edges+(torch.arange(b).to(logits.device)*n)[:,None,None]).transpose(0,1).reshape(2,-1), logprobs
+#         return edges, logprobs
+    
+    def sample_without_replacement(self, logits, batch):
+        b = batch.max().item() + 1
+        n = logits.size(1)
+        logits = logits * torch.exp(torch.clamp(self.temperature, -5, 5))
+
+        # Mask out logits between nodes of different graphs
+        for graph_id in batch.unique():
+            mask = (batch == graph_id)
+            logits[:, ~mask] = float('-inf')  # Mask out irrelevant nodes
+
+        q = torch.rand_like(logits) + 1e-8
+        lq = (logits - torch.log(-torch.log(q)))
+        logprobs, indices = torch.topk(-lq, self.k)
+
+        rows = torch.arange(n).view(1, n, 1).to(logits.device).repeat(b, 1, self.k)
+        edges = torch.stack((indices.view(b, -1), rows.view(b, -1)), -2)
+
         if self.sparse:
-            return (edges+(torch.arange(b).to(logits.device)*n)[:,None,None]).transpose(0,1).reshape(2,-1), logprobs
+            return (edges + (torch.arange(b).to(logits.device) * n)[:, None, None]).transpose(0, 1).reshape(2, -1), logprobs
         return edges, logprobs

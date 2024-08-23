@@ -11,7 +11,7 @@ loader:
 
 # Dataset parameters
 parameters:
-  num_features: 3 # here basically I specify the initial num features in PROTEINS at x aka x_0
+  num_features: 4 # here basically I specify the initial num features in PROTEINS at x aka x_0
   num_classes: 2
   task: classification
   loss_type: cross_entropy
@@ -24,7 +24,7 @@ split_params:
   data_split_dir: ./data_splits
   data_seed: 0
   split_type: random #'k-fold' # either "k-fold" or "random" strategies
-  k: 10 # for "k-fold" Cross-Validation
+  k: 2 # for "k-fold" Cross-Validation
   train_prop: 0.8 # for "random" strategy splitting
 
 # Dataloader parameters
