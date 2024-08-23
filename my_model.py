@@ -8,6 +8,7 @@ from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPoo
 import hydra
 from omegaconf import DictConfig
 
+
 class Model_channel(pl.LightningModule):
     def __init__(self, hparams):
 
@@ -138,10 +139,17 @@ class Model_channel(pl.LightningModule):
 
         return optimizer
 
+# TODO: fix questi steps perchè le dimensioni non matchano. è come se il batch fosse sempre fatto da un solo datapoint, a prescindere dal batch size che gli do io 
+# TODO: quando uso proteins si blocca tutto perchè aggiunge la quarta feature non so perché porca puttana
+
     def training_step(self, batch, batch_idx):
         pred, _, _ = self(batch)
         train_lab = batch.y
+
+        print(pred.shape)
+        print(train_lab.shape)
         tr_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(train_lab).float())
+        #tr_loss = F.binary_cross_entropy_with_logits(pred, train_lab)
 
         if torch.isnan(tr_loss).any() or torch.isnan(pred).any():
             print(f"NaN detected in training data or loss at batch {batch_idx}")
@@ -159,9 +167,14 @@ class Model_channel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         val_lab = batch.y
         pred, _, _ = self(batch)
-        # print(pred.shape)
-        # print(F.one_hot(val_lab).float().shape)
+
+        
+        print(pred.shape)
+        print(val_lab.shape)
+
         val_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(val_lab).float())
+        #val_loss = F.binary_cross_entropy_with_logits(pred, val_lab)
+
 
         if torch.isnan(val_loss).any() or torch.isnan(pred).any():
             print(f"NaN detected in validation data or loss at batch {batch_idx}")

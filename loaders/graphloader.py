@@ -15,6 +15,12 @@ import numpy as np
 import torch
 from sklearn.model_selection import StratifiedKFold
 import torch_geometric
+from collections import defaultdict
+
+from typing import Any
+
+from pytorch_lightning import LightningDataModule
+from torch.utils.data import DataLoader
 
 
 class DataloadDataset(torch_geometric.data.Dataset):
@@ -208,6 +214,7 @@ class GraphLoader(AbstractLoader):
             )
 
         elif self.parameters.data_name in TU_DATASETS:
+
             dataset = torch_geometric.datasets.TUDataset(
                 root=root_data_dir,
                 name=self.parameters.data_name,
@@ -408,9 +415,9 @@ def random_splitting(labels, parameters, global_data_seed=42):
     dict:
         Dictionary containing the train, validation and test indices with keys "train", "valid", and "test".
     """
-    fold = parameters["data_seed"]
-    data_dir = parameters["data_split_dir"]
-    train_prop = parameters["train_prop"]
+    fold = parameters.data_seed
+    data_dir = parameters.data_split_dir
+    train_prop = parameters.train_prop
     valid_prop = (1 - train_prop) / 2
 
     # Create split directory if it does not exist
@@ -638,9 +645,9 @@ def load_coauthorship_hypergraph_splits(data, parameters, train_prop=0.5):
     """
 
     data_dir = os.path.join(
-        parameters["data_split_dir"], f"train_prop={train_prop}"
+        parameters.data_split_dir, f"train_prop={train_prop}"
     )
-    load_path = f"{data_dir}/split_{parameters['data_seed']}.npz"
+    load_path = f"{data_dir}/split_{parameters.data_seed}.npz"
     splits = np.load(load_path, allow_pickle=True)
 
     # Upload masks
@@ -834,13 +841,6 @@ class PreProcessor(torch_geometric.data.InMemoryDataset):
 
 
 
-
-
-
-
-
-
-
 # class GraphLoader(AbstractLoader):
 #     def __init__(self, parameters):
 #         super().__init__()
@@ -985,9 +985,9 @@ def k_fold_split(dataset, parameters, test_ratio = 0.2, ignore_negative=True):
     :param ignore_negative: If True the function ignores negative labels. Default True.
     :return split_idx: A dictionary containing "train" and "valid" tensors with the respective indices.
     """
-    data_dir = parameters["data_split_dir"]
-    k = parameters["k"]
-    fold = parameters["data_seed"]
+    data_dir = parameters.data_split_dir
+    k = parameters.k
+    fold = parameters.data_seed
     assert fold < k, "data_seed needs to be less than k"
 
     torch.manual_seed(0)
@@ -1001,7 +1001,7 @@ def k_fold_split(dataset, parameters, test_ratio = 0.2, ignore_negative=True):
         split_idx = np.load(split_path)
         return split_idx
     else:
-        if parameters["task_level"] == "graph":
+        if parameters.task_level == "graph":
             labels = dataset.y
 
         # need to look into this more
@@ -1179,3 +1179,281 @@ def make_hash(o):
     hash_as_hex = sha1.hexdigest()
     # Convert the hex back to int and restrict it to the relevant int range
     return int(hash_as_hex, 16) % 4294967295
+
+
+
+
+
+
+
+
+
+class TBXDataloader(LightningDataModule):
+    r"""This class takes care of returning the dataloaders for the training, validation, and test datasets.
+
+    It also handles the collate function. The class is designed to work with the `torch` dataloaders.
+
+    Parameters
+    ----------
+    dataset_train : DataloadDataset
+        The training dataset.
+    dataset_val : DataloadDataset, optional
+        The validation dataset (default: None).
+    dataset_test : DataloadDataset, optional
+        The test dataset (default: None).
+    batch_size : int, optional
+        The batch size for the dataloader (default: 1).
+    num_workers : int, optional
+        The number of worker processes to use for data loading (default: 0).
+    pin_memory : bool, optional
+        If True, the data loader will copy tensors into pinned memory before returning them (default: False).
+    **kwargs : optional
+        Additional arguments.
+
+    References
+    ----------
+    Read the docs:
+        https://lightning.ai/docs/pytorch/latest/data/datamodule.html
+    """
+
+    def __init__(
+        self,
+        dataset_train: DataloadDataset,
+        dataset_val: DataloadDataset = None,
+        dataset_test: DataloadDataset = None,
+        batch_size: int = 1,
+        num_workers: int = 0,
+        pin_memory: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__()
+
+        # this line allows to access init params with 'self.hparams' attribute
+        # also ensures init params will be stored in ckpt
+        self.save_hyperparameters(
+            logger=False,
+            ignore=["dataset_train", "dataset_val", "dataset_test"],
+        )
+        self.dataset_train = dataset_train
+        self.batch_size = batch_size
+
+        if dataset_val is None and dataset_test is None:
+            # Transductive setting
+            self.dataset_val = dataset_train
+            self.dataset_test = dataset_train
+            assert (
+                self.batch_size == 1
+            ), "Batch size must be 1 for transductive setting."
+        else:
+            self.dataset_val = dataset_val
+            self.dataset_test = dataset_test
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+        self.persistent_workers = kwargs.get("persistent_workers", False)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(dataset_train={self.dataset_train}, dataset_val={self.dataset_val}, dataset_test={self.dataset_test}, batch_size={self.batch_size})"
+
+    def train_dataloader(self) -> DataLoader:
+        r"""Create and return the train dataloader.
+
+        Returns
+        -------
+        torch.utils.data.DataLoader
+            The train dataloader.
+        """
+        return DataLoader(
+            dataset=self.dataset_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=True,
+            collate_fn=collate_fn,
+            persistent_workers=self.persistent_workers,
+        )
+
+    def val_dataloader(self) -> DataLoader:
+        r"""Create and return the validation dataloader.
+
+        Returns
+        -------
+        torch.utils.data.DataLoader
+            The validation dataloader.
+        """
+        return DataLoader(
+            dataset=self.dataset_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+            collate_fn=collate_fn,
+            persistent_workers=self.persistent_workers,
+        )
+
+    def test_dataloader(self) -> DataLoader:
+        r"""Create and return the test dataloader.
+
+        Returns
+        -------
+        torch.utils.data.DataLoader
+            The test dataloader.
+        """
+        if self.dataset_test is None:
+            raise ValueError("There is no test dataloader.")
+        return DataLoader(
+            dataset=self.dataset_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+            collate_fn=collate_fn,
+            persistent_workers=self.persistent_workers,
+        )
+
+    def teardown(self, stage: str | None = None) -> None:
+        r"""Lightning hook for cleaning up after `trainer.fit()`, `trainer.validate()`, `trainer.test()`, and `trainer.predict()`.
+
+        Parameters
+        ----------
+        stage : str, optional
+            The stage being torn down. Either `"fit"`, `"validate"`, `"test"`, or `"predict"` (default: None).
+        """
+
+    def state_dict(self) -> dict[Any, Any]:
+        r"""Called when saving a checkpoint. Implement to generate and save the datamodule state.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the datamodule state that you want to save.
+        """
+        return {}
+
+
+
+class DomainData(torch_geometric.data.Data):
+    r"""Helper Data class so that not only sparse matrices with adj in the name can work with PyG dataloaders.
+
+    It overwrites some methods from `torch_geometric.data.Data`
+    """
+
+    def is_valid(self, string):
+        r"""Check if the string contains any of the valid names.
+
+        Parameters
+        ----------
+        string : str
+            String to check.
+
+        Returns
+        -------
+        bool
+            Whether the string contains any of the valid names.
+        """
+        valid_names = ["adj", "incidence", "laplacian"]
+        return any(name in string for name in valid_names)
+
+    def __cat_dim__(self, key: str, value: Any, *args, **kwargs) -> Any:
+        r"""Overwrite the `__cat_dim__` method to handle sparse matrices to handle the names specified in `is_valid`.
+
+        Parameters
+        ----------
+        key : str
+            Key of the data.
+        value : Any
+            Value of the data.
+        *args : Any
+            Additional arguments.
+        **kwargs : Any
+            Additional keyword arguments.
+
+        Returns
+        -------
+        Any
+            The concatenation dimension.
+        """
+        if torch_geometric.utils.is_sparse(value) and self.is_valid(key):
+            return (0, 1)
+        elif "index" in key or key == "face":
+            return -1
+        else:
+            return 0
+
+
+
+
+def collate_fn(batch):
+    r"""Overwrite `torch_geometric.data.DataLoader` collate function to use the `DomainData` class.
+
+    This ensures that the `torch_geometric` dataloaders work with sparse matrices that are not necessarily named `adj`. The function also generates the batch slices for the different cell dimensions.
+
+    Parameters
+    ----------
+    batch : list
+        List of data objects (e.g., `torch_geometric.data.Data`).
+
+    Returns
+    -------
+    torch_geometric.data.Batch
+        A `torch_geometric.data.Batch` object.
+    """
+    data_list = []
+    batch_idx_dict = defaultdict(list)
+
+    # Keep track of the running index for each cell dimension
+    running_idx = {}
+
+    for batch_idx, b in enumerate(batch):
+        values, keys = b[0], b[1]
+        data = DomainData()
+        for key, value in zip(keys, values, strict=False):
+            if torch_geometric.utils.is_sparse(value):
+                value = value.coalesce()
+            data[key] = value
+
+        # Generate batch_slice values for x_1, x_2, x_3, ...
+        x_keys = [el for el in keys if ("x_" in el)]
+        for x_key in x_keys:
+            if x_key != "x_0":
+                if x_key != "x_hyperedges":
+                    cell_dim = int(x_key.split("_")[1])
+                else:
+                    cell_dim = x_key.split("_")[1]
+
+                current_number_of_cells = data[x_key].shape[0]
+
+                batch_idx_dict[f"batch_{cell_dim}"].append(
+                    torch.tensor([[batch_idx] * current_number_of_cells])
+                )
+
+                if (
+                    running_idx.get(f"cell_running_idx_number_{cell_dim}")
+                    is None
+                ):
+                    running_idx[f"cell_running_idx_number_{cell_dim}"] = (
+                        current_number_of_cells
+                    )
+
+                else:
+                    running_idx[f"cell_running_idx_number_{cell_dim}"] += (
+                        current_number_of_cells
+                    )
+
+        data_list.append(data)
+
+    batch = torch_geometric.data.Batch.from_data_list(data_list)
+
+    # Rename batch.batch to batch.batch_0 for consistency
+    batch["batch_0"] = batch.pop("batch")
+
+    # Add batch slices to batch
+    for key, value in batch_idx_dict.items():
+        batch[key] = torch.cat(value, dim=1).squeeze(0).long()
+
+    # Ensure shape is torch.Tensor
+    # "shape" describes the number of n_cells in each graph
+    if batch.get("shape") is not None:
+        cell_statistics = batch.pop("shape")
+        batch["cell_statistics"] = torch.Tensor(cell_statistics).long()
+
+    return batch

@@ -194,9 +194,9 @@ class DGM_d(nn.Module):
     
 
     def sample_without_replacement(self, logits):
-        if logits.dim() == 2:
-        # questo l'ho aggiunto io perche non funzionava niente. devo capire se c'e' un problema con il caricamento dei dati per cui non viene fuori la batch dimension
-            logits = logits.unsqueeze(0)
+        # if logits.dim() == 2:
+        # # questo l'ho aggiunto io perche non funzionava niente. devo capire se c'e' un problema con il caricamento dei dati per cui non viene fuori la batch dimension
+        #     logits = logits.unsqueeze(0)
         b,n,_ = logits.shape
 #         logits = logits * torch.exp(self.temperature*10)
         logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))

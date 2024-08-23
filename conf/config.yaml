@@ -1,5 +1,5 @@
 defaults:
-  - dataset: dataset_config
+  - dataset: proteins
   - my_model: model_config
   - dgm: no_dgm_conf
   - pooling: pooling_conf
