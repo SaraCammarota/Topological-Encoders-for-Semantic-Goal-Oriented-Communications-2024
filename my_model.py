@@ -99,7 +99,7 @@ class Model_channel(pl.LightningModule):
         if self.dgm_name == 'alpha_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
         elif self.dgm_name == 'topk_dgm':
-            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"]) 
+            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch) 
         elif self.dgm_name == 'no_dgm': 
             # x_aux = self.graph_f(x, data["edge_index"]) 
             edges = data["edge_index"]

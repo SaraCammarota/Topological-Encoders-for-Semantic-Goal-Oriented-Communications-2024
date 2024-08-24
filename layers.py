@@ -153,6 +153,8 @@ def sparse_eye(size):
 
 
 class DGM_d(nn.Module):
+
+    # TODO aggiungere la casistica come in alpha_dgm per gestire sia i casi di batch che non
     def __init__(self, embed_f, k=5, distance=pairwise_euclidean_distances, sparse=True):
         super(DGM_d, self).__init__()
         
@@ -170,32 +172,27 @@ class DGM_d(nn.Module):
         else:
             self.distance = pairwise_poincare_distances
         
-    def forward(self, x, A, not_used=None, fixedges=None):
+    def forward(self, x, A, batch, not_used=None, fixedges=None):
         x = self.embed_f(x,A)  
-        print('questo è il valore di x')
-        print(x)
-        print(x.shape)
+
         if self.training:
             if fixedges is not None:                
                 return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
             
-            D, _x = self.distance(x)
+            D, _x = self.distance(x, batch)
            
             #sampling here
-            edges_hat, logprobs = self.sample_without_replacement(D)
+            edges_hat, logprobs = self.sample_without_replacement(D, batch)
                 
         else:
             with torch.no_grad():
                 if fixedges is not None:                
                     return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
-                D, _x = self.distance(x)
+                D, _x = self.distance(x, batch)
 
                 #sampling here
 
-                print('questo è il valore di D distanza')
-                print(D)
-                print(D.shape)
-                edges_hat, logprobs = self.sample_without_replacement(D)
+                edges_hat, logprobs = self.sample_without_replacement(D, batch)
 
               
         if self.debug:
@@ -208,9 +205,7 @@ class DGM_d(nn.Module):
     
 
 #     def sample_without_replacement(self, logits):
-#         # if logits.dim() == 2:
-#         # # questo l'ho aggiunto io perche non funzionava niente. devo capire se c'e' un problema con il caricamento dei dati per cui non viene fuori la batch dimension
-#         #     logits = logits.unsqueeze(0)
+
 #         b,n,_ = logits.shape
 # #         logits = logits * torch.exp(self.temperature*10)
 #         logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))
