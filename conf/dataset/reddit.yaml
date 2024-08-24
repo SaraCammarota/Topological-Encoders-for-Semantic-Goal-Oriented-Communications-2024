@@ -5,7 +5,7 @@ loader:
     data_domain: graph
     data_type: TUDataset
     data_name: REDDIT-BINARY
-    data_dir: ./${dataset.loader.parameters.data_domain}/${dataset.loader.parameters.data_type}
+    data_dir: ${paths.data_dir}/${dataset.loader.parameters.data_domain}/${dataset.loader.parameters.data_type}
 
 # Dataset parameters
 parameters:
@@ -21,7 +21,7 @@ parameters:
 #splits
 split_params:
   learning_setting: inductive
-  data_split_dir: ./data_splits/${dataset.loader.parameters.data_name}
+  data_split_dir: ${paths.data_dir}/data_splits/${dataset.loader.parameters.data_name}
   data_seed: 0
   split_type: random #'k-fold' # either "k-fold" or "random" strategies
   k: 10 # for "k-fold" Cross-Validation
@@ -32,3 +32,5 @@ dataloader_params:
   batch_size: 128 
   num_workers: 0
   pin_memory: False
+
+

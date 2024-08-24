@@ -1,7 +1,8 @@
 defaults:
-  - dataset: nci1
+  - dataset: nci109
   - my_model: model_config
-  - dgm: alpha_dgm_conf
+  - dgm: topk_dgm_conf
   - pooling: pooling_conf
   - training: train_conf
   - exp: snr_conf
+  - paths: default

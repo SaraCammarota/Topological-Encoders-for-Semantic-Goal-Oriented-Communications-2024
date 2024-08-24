@@ -125,10 +125,14 @@ class NoiseBlock(nn.Module):
 
 def pairwise_euclidean_distances(x, batch):
     # Batch is a vector indicating the graph each node belongs to
-    dist = torch.zeros(x.size(0), x.size(0)).to(x.device)
+    #dist = torch.zeros(x.size(0), x.size(0)).to(x.device)
+    dist = torch.full((x.size(0), x.size(0)), float('inf')).to(x.device)
+
     for graph_id in batch.unique():
         mask = (batch == graph_id)
-        dist[mask][:, mask] = torch.cdist(x[mask], x[mask])**2
+        #dist[mask][:, mask] = torch.cdist(x[mask], x[mask])**2
+        dist[mask.nonzero(as_tuple=True)[0].unsqueeze(1), mask.nonzero(as_tuple=True)[0]] = torch.cdist(x[mask], x[mask])**2
+        
     return dist, x
 
 # #Poincarè disk distance r=1 (Hyperbolic)
@@ -154,7 +158,7 @@ def sparse_eye(size):
 
 class DGM_d(nn.Module):
 
-    # TODO aggiungere la casistica come in alpha_dgm per gestire sia i casi di batch che non
+    # TODO riuscire ad adattare il loro dgm ai grafi interi
     def __init__(self, embed_f, k=5, distance=pairwise_euclidean_distances, sparse=True):
         super(DGM_d, self).__init__()
         
@@ -224,16 +228,29 @@ class DGM_d(nn.Module):
     def sample_without_replacement(self, logits, batch):
         b = batch.max().item() + 1
         n = logits.size(1)
+
         logits = logits * torch.exp(torch.clamp(self.temperature, -5, 5))
 
-        # Mask out logits between nodes of different graphs
-        for graph_id in batch.unique():
-            mask = (batch == graph_id)
-            logits[:, ~mask] = float('-inf')  # Mask out irrelevant nodes
+        # # Mask out logits between nodes of different graphs
+        # for graph_id in batch.unique():
+        #     mask = (batch == graph_id)
+        #     logits[:, ~mask] = float('-inf')  # Mask out irrelevant nodes TODO understand if this is correct
+            
+        # valid_mask = torch.zeros_like(logits, dtype=torch.bool)
+
+        # for graph_id in batch.unique():
+        #     mask = (batch == graph_id)
+        #     valid_mask[:, mask] = True  # Mark these positions as valid
+
+        # logits[~valid_mask] = float('inf')
 
         q = torch.rand_like(logits) + 1e-8
         lq = (logits - torch.log(-torch.log(q)))
+
+        #print(-lq)
         logprobs, indices = torch.topk(-lq, self.k)
+
+        print(torch.topk(q, self.k))
 
         rows = torch.arange(n).view(1, n, 1).to(logits.device).repeat(b, 1, self.k)
         edges = torch.stack((indices.view(b, -1), rows.view(b, -1)), -2)
