@@ -141,57 +141,7 @@ class Model_channel(pl.LightningModule):
 
         return optimizer
 
-# TODO: fix questi steps perchè le dimensioni non matchano. è come se il batch fosse sempre fatto da un solo datapoint, a prescindere dal batch size che gli do io 
-# TODO: quando uso proteins si blocca tutto perchè aggiunge la quarta feature non so perché porca puttana
 
-    # def training_step(self, batch, batch_idx):
-    #     pred, _, _ = self(batch)
-    #     train_lab = batch.y
-
-    #     print(pred.shape)
-    #     print(train_lab.shape)
-    #     tr_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(train_lab).float())
-    #     #tr_loss = F.binary_cross_entropy_with_logits(pred, train_lab)
-
-    #     if torch.isnan(tr_loss).any() or torch.isnan(pred).any():
-    #         print(f"NaN detected in training data or loss at batch {batch_idx}")
-    #         print(f"Predictions: {pred}, Labels: {train_lab}")
-
-
-
-    #     self.log("train_acc", self.train_acc(pred.softmax(-1).argmax(-1), train_lab), on_step=False, on_epoch=True, prog_bar = True)
-    #     self.log("train_loss", tr_loss, on_step=False, on_epoch=True, prog_bar = True)
-    #     torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
-
-    #     return tr_loss
-
-
-    # def validation_step(self, batch, batch_idx):
-    #     val_lab = batch.y
-    #     pred, _, _ = self(batch)
-
-        
-    #     print(pred.shape)
-    #     print(val_lab.shape)
-
-    #     val_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(val_lab).float())
-    #     #val_loss = F.binary_cross_entropy_with_logits(pred, val_lab)
-
-
-    #     if torch.isnan(val_loss).any() or torch.isnan(pred).any():
-    #         print(f"NaN detected in validation data or loss at batch {batch_idx}")
-    #         print(f"Predictions: {pred}, Labels: {val_lab}")
-
-    #     val_acc = self.val_acc(pred.softmax(-1).argmax(-1), val_lab)
-    #     #self.validation_step_outputs.append(val_acc)
-
-    #     self.log("val_acc", val_acc, on_step=False, on_epoch=True, prog_bar = True)
-    #     self.log("val_loss", val_loss, on_step=False, on_epoch=True, prog_bar = True)
-
-    # # def on_validation_epoch_end(self):
-    # #   epoch_average = torch.stack(self.validation_step_outputs).mean()
-    # #   self.log("validation_epoch_average", epoch_average)
-    # #   self.validation_step_outputs.clear()  # free memory
 
     def training_step(self, batch, batch_idx):
        # print(f"Batch size: {batch.batch.max().item() + 1}")  # Number of graphs in the batch

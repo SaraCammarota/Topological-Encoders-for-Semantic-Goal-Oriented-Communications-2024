@@ -118,22 +118,22 @@ class NoiseBlock(nn.Module):
 
 
 
-# #Euclidean distance
-# def pairwise_euclidean_distances(x, dim=-1):
-#     dist = torch.cdist(x,x)**2
-#     return dist, x
-
-def pairwise_euclidean_distances(x, batch):
-    # Batch is a vector indicating the graph each node belongs to
-    #dist = torch.zeros(x.size(0), x.size(0)).to(x.device)
-    dist = torch.full((x.size(0), x.size(0)), float('inf')).to(x.device)
-
-    for graph_id in batch.unique():
-        mask = (batch == graph_id)
-        #dist[mask][:, mask] = torch.cdist(x[mask], x[mask])**2
-        dist[mask.nonzero(as_tuple=True)[0].unsqueeze(1), mask.nonzero(as_tuple=True)[0]] = torch.cdist(x[mask], x[mask])**2
-        
+#Euclidean distance
+def pairwise_euclidean_distances(x, dim=-1):
+    dist = torch.cdist(x,x)**2
     return dist, x
+
+# def pairwise_euclidean_distances(x, batch):
+#     # Batch is a vector indicating the graph each node belongs to
+#     #dist = torch.zeros(x.size(0), x.size(0)).to(x.device)
+#     dist = torch.full((x.size(0), x.size(0)), float('inf')).to(x.device)
+
+#     for graph_id in batch.unique():
+#         mask = (batch == graph_id)
+#         #dist[mask][:, mask] = torch.cdist(x[mask], x[mask])**2
+#         dist[mask.nonzero(as_tuple=True)[0].unsqueeze(1), mask.nonzero(as_tuple=True)[0]] = torch.cdist(x[mask], x[mask])**2
+        
+#     return dist, x
 
 # #Poincarè disk distance r=1 (Hyperbolic)
 def pairwise_poincare_distances(x, dim=-1):
@@ -158,7 +158,7 @@ def sparse_eye(size):
 
 class DGM_d(nn.Module):
 
-    # TODO riuscire ad adattare il loro dgm ai grafi interi
+
     def __init__(self, embed_f, k=5, distance=pairwise_euclidean_distances, sparse=True):
         super(DGM_d, self).__init__()
         
@@ -176,27 +176,34 @@ class DGM_d(nn.Module):
         else:
             self.distance = pairwise_poincare_distances
         
-    def forward(self, x, A, batch, not_used=None, fixedges=None):
+    def forward(self, x, A, batch = None, not_used=None, fixedges=None):
         x = self.embed_f(x,A)  
 
         if self.training:
-            if fixedges is not None:                
-                return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
-            
-            D, _x = self.distance(x, batch)
-           
+
+            # if fixedges is not None:                
+            #     return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
+
+            D, _x = self.distance(x)
+            if batch is None:
             #sampling here
-            edges_hat, logprobs = self.sample_without_replacement(D, batch)
+                edges_hat, logprobs = self.sample_without_replacement(D)
+            elif batch is not None: 
+                edges_hat, logprobs = self.sample_without_replacement_batch(D, batch)
                 
         else:
             with torch.no_grad():
-                if fixedges is not None:                
-                    return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
-                D, _x = self.distance(x, batch)
+                # if fixedges is not None:                
+                #     return x, fixedges, torch.zeros(fixedges.shape[0],fixedges.shape[-1]//self.k,self.k,dtype=torch.float,device=x.device)
+                D, _x = self.distance(x)
 
                 #sampling here
 
-                edges_hat, logprobs = self.sample_without_replacement(D, batch)
+                if batch is None:
+                #sampling here
+                    edges_hat, logprobs = self.sample_without_replacement(D)
+                elif batch is not None: 
+                    edges_hat, logprobs = self.sample_without_replacement_batch(D, batch)
 
               
         if self.debug:
@@ -208,53 +215,69 @@ class DGM_d(nn.Module):
         return x, edges_hat, logprobs
     
 
-#     def sample_without_replacement(self, logits):
+    def sample_without_replacement(self, logits):
 
-#         b,n,_ = logits.shape
-# #         logits = logits * torch.exp(self.temperature*10)
-#         logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))
+        b,n,_ = logits.shape
+#         logits = logits * torch.exp(self.temperature*10)
+        logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))
         
-#         q = torch.rand_like(logits) + 1e-8
-#         lq = (logits-torch.log(-torch.log(q)))
-#         logprobs, indices = torch.topk(-lq,self.k)  
-    
-#         rows = torch.arange(n).view(1,n,1).to(logits.device).repeat(b,1,self.k)
-#         edges = torch.stack((indices.view(b,-1),rows.view(b,-1)),-2)
-        
-#         if self.sparse:
-#             return (edges+(torch.arange(b).to(logits.device)*n)[:,None,None]).transpose(0,1).reshape(2,-1), logprobs
-#         return edges, logprobs
-    
-    def sample_without_replacement(self, logits, batch):
-        b = batch.max().item() + 1
-        n = logits.size(1)
-
-        logits = logits * torch.exp(torch.clamp(self.temperature, -5, 5))
-
-        # # Mask out logits between nodes of different graphs
-        # for graph_id in batch.unique():
-        #     mask = (batch == graph_id)
-        #     logits[:, ~mask] = float('-inf')  # Mask out irrelevant nodes TODO understand if this is correct
-            
-        # valid_mask = torch.zeros_like(logits, dtype=torch.bool)
-
-        # for graph_id in batch.unique():
-        #     mask = (batch == graph_id)
-        #     valid_mask[:, mask] = True  # Mark these positions as valid
-
-        # logits[~valid_mask] = float('inf')
-
         q = torch.rand_like(logits) + 1e-8
-        lq = (logits - torch.log(-torch.log(q)))
-
-        #print(-lq)
-        logprobs, indices = torch.topk(-lq, self.k)
-
-        print(torch.topk(q, self.k))
-
-        rows = torch.arange(n).view(1, n, 1).to(logits.device).repeat(b, 1, self.k)
-        edges = torch.stack((indices.view(b, -1), rows.view(b, -1)), -2)
-
+        lq = (logits-torch.log(-torch.log(q)))
+        logprobs, indices = torch.topk(-lq,self.k)  
+    
+        rows = torch.arange(n).view(1,n,1).to(logits.device).repeat(b,1,self.k)
+        edges = torch.stack((indices.view(b,-1),rows.view(b,-1)),-2)
+        
         if self.sparse:
-            return (edges + (torch.arange(b).to(logits.device) * n)[:, None, None]).transpose(0, 1).reshape(2, -1), logprobs
+            return (edges+(torch.arange(b).to(logits.device)*n)[:,None,None]).transpose(0,1).reshape(2,-1), logprobs
         return edges, logprobs
+
+
+    def sample_without_replacement_batch(self, logits, batch):
+        """
+        This function samples k edges without replacement for each graph in the batch.
+        Args:
+            logits: Tensor of shape (total_nodes, total_nodes) containing the logits for each pair of nodes.
+            batch: Tensor of shape (total_nodes,) indicating which graph each node belongs to.
+        Returns:
+            edges: Tensor of shape (2, total_edges) containing the sampled edges.
+            logprobs: Tensor of shape (batch_size, k) containing the log probabilities of the sampled edges.
+        """
+
+        # TODO QUESTA FUNZIONE MANDA A PUTTANE TUTTO LEDGE LIST VA RISCRITTA. NON FUNZIONA PIU IL POOLING 
+        device = logits.device
+        unique_graphs = batch.unique(sorted=True)
+        edges_list = []
+        logprobs_list = []
+        
+        for graph_id in unique_graphs:
+            mask = (batch == graph_id)
+            logits_i = logits[mask][:, mask] 
+            num_nodes_i = logits_i.size(0)
+            
+            logits_i = logits_i * torch.exp(torch.clamp(self.temperature, -5, 5))
+            
+            q = torch.rand_like(logits_i) + 1e-8
+            lq = logits_i - torch.log(-torch.log(q))
+            logprobs, indices = torch.topk(-lq, self.k, dim=-1)  # Top-k edges for graph i
+            
+            rows = torch.arange(num_nodes_i, device=device).view(-1, 1).expand_as(indices)
+            edges = torch.stack((indices.view(-1), rows.view(-1)), dim=-1)
+            
+            # Convert the edges to the original indexing scheme
+            global_indices = mask.nonzero(as_tuple=True)[0]
+            edges = global_indices[edges]
+            
+            edges_list.append(edges)
+            logprobs_list.append(logprobs)
+        
+        all_edges = torch.cat(edges_list, dim=0)
+        all_logprobs = torch.cat(logprobs_list, dim=0)
+        
+        # if self.sparse:
+        #     all_edges = all_edges.transpose(0, 1).reshape(2, -1)
+        
+        return all_edges, all_logprobs
+
+
+    

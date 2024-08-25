@@ -40,6 +40,7 @@ def setup_training(config):
     #wandb_logger = WandbLogger(project='experiments-with-hydra')
     hparams = create_hyperparameters(config)
     
+
     #wandb_logger.log_hyperparams(hparams)
 
     channel = Model_channel(hparams)
@@ -96,8 +97,3 @@ if __name__ == "__main__":
     # trainer, channel, train_loader, val_loader = setup_training()
     # trainer.fit(channel, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
-
-
-
-# TODO: abbiamo capito che il problema delle features era dovuto a le cartelle messe male. Praticamente devo riuscire a scaricarmi pure le config dei paths così risolvo tutto credo. e 
-# devo anche riscaricare tutte le conf dei dataset a quel punto perchè le avevo modificate
