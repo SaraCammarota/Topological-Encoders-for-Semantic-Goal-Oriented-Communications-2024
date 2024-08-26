@@ -3,3 +3,5 @@ experiments-with-hydra
 outputs
 wandb
 __pycache__/
+data
+datasets

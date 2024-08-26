@@ -261,9 +261,9 @@ class DGM_d(nn.Module):
             
             q = torch.rand_like(logits_i) + 1e-8
             lq = logits_i - torch.log(-torch.log(q))
-            logprobs, indices = torch.topk(-lq, self.k)  # Top-k edges for graph i
-            k = self.k
-            print(k)
+            
+            logprobs, indices = torch.topk(lq, self.k, largest = False)  # Top-k edges for graph i
+
             print(logprobs, indices)
 
             rows = torch.arange(num_nodes_i, device=device).view(-1, 1).expand_as(indices)
