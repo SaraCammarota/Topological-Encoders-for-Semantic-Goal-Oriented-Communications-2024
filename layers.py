@@ -41,6 +41,9 @@ class MLP(nn.Module):
         x = self.MLP(x)
         return x
     
+
+# TODO: avoid self loops
+
 class DGM(nn.Module):
     def __init__(self, embed_f: nn.Module, gamma, std):
         super(DGM, self).__init__()
@@ -244,7 +247,6 @@ class DGM_d(nn.Module):
             logprobs: Tensor of shape (batch_size, k) containing the log probabilities of the sampled edges.
         """
 
-        # TODO QUESTA FUNZIONE MANDA A PUTTANE TUTTO LEDGE LIST VA RISCRITTA. NON FUNZIONA PIU IL POOLING 
         device = logits.device
         unique_graphs = batch.unique(sorted=True)
         edges_list = []
@@ -259,14 +261,17 @@ class DGM_d(nn.Module):
             
             q = torch.rand_like(logits_i) + 1e-8
             lq = logits_i - torch.log(-torch.log(q))
-            logprobs, indices = torch.topk(-lq, self.k, dim=-1)  # Top-k edges for graph i
-            
+            logprobs, indices = torch.topk(-lq, self.k)  # Top-k edges for graph i
+            k = self.k
+            print(k)
+            print(logprobs, indices)
+
             rows = torch.arange(num_nodes_i, device=device).view(-1, 1).expand_as(indices)
             edges = torch.stack((indices.view(-1), rows.view(-1)), dim=-1)
-            
             # Convert the edges to the original indexing scheme
             global_indices = mask.nonzero(as_tuple=True)[0]
             edges = global_indices[edges]
+            # cosa sono global indices
             
             edges_list.append(edges)
             logprobs_list.append(logprobs)

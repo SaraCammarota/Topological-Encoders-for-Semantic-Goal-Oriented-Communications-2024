@@ -204,6 +204,8 @@ class GraphLoader(AbstractLoader):
         # Define the path to the data directory
         root_data_dir = self.parameters.data_dir
         data_dir = os.path.join(root_data_dir, self.parameters.data_name)
+
+
         if (
             self.parameters.data_name in PLANETOID_DATASETS
             and self.parameters.data_type == "cocitation"
@@ -252,7 +254,8 @@ class GraphLoader(AbstractLoader):
             # Join dataset to process it
             dataset = datasets[0] + datasets[1] + datasets[2]
             dataset.split_idx = split_idx
-            data_dir = root_data_dir
+
+            data_dir = root_data_dir      
 
         elif self.parameters.data_name in HETEROPHILIC_DATASETS:
             dataset = torch_geometric.datasets.HeterophilousGraphDataset(
@@ -277,6 +280,8 @@ class GraphLoader(AbstractLoader):
             raise NotImplementedError(
                 f"Dataset {self.parameters.data_name} not implemented"
             )
+
+
 
         return dataset, data_dir
     

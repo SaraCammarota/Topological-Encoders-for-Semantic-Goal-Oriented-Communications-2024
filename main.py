@@ -39,7 +39,7 @@ def setup_training(config):
 
     #wandb_logger = WandbLogger(project='experiments-with-hydra')
     hparams = create_hyperparameters(config)
-    
+    print(hparams)
 
     #wandb_logger.log_hyperparams(hparams)
 
