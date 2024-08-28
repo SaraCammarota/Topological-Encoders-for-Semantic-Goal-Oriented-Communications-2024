@@ -17,8 +17,6 @@ from loaders import *
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
-
-  # Instantiate and load dataset
     
     dataset_loader = GraphLoader(DictConfig(      
         {"data_dir": "./data",
@@ -28,18 +26,15 @@ def setup_training(config):
     
 
     dataset, dataset_dir = dataset_loader.load()
-
-    # Preprocess dataset and load the splits
     
     transform_config = None
-    preprocessor = PreProcessor(dataset, dataset_dir, transform_config)
+    preprocessor = PreProcessor(dataset, ".", transform_config)
     train_data, validation_data, test_data = preprocessor.load_dataset_splits(config.dataset.split_params)
 
     datamodule = TBXDataloader(train_data, validation_data, test_data, batch_size=config.dataset.dataloader_params.batch_size)
 
     #wandb_logger = WandbLogger(project='experiments-with-hydra')
     hparams = create_hyperparameters(config)
-    print(hparams)
 
     #wandb_logger.log_hyperparams(hparams)
 

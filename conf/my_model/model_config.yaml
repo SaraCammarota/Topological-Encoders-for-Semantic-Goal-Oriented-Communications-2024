@@ -17,8 +17,6 @@ layers:
 dropout: 0.0
 use_gcn: true
 
-#k: 4
-
 
 channel:
   noise: 'awgn'

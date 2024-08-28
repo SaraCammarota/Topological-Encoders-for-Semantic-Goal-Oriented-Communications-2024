@@ -158,6 +158,8 @@ def sparse_eye(size):
     cls = getattr(torch.sparse, values.type().split(".")[-1])
     return cls(indices, values, torch.Size([size, size])) 
 
+# TODO bisogna aggiungere un check per assicurarsi che il valore selezionato di k non sia troppo grande. non tutti i grafi hanno lo stesso numero di nodi
+    
 
 class DGM_d(nn.Module):
 
@@ -220,6 +222,8 @@ class DGM_d(nn.Module):
 
     def sample_without_replacement(self, logits):
 
+        # logits is a matrix tot_num_nodes_batch x tot_num_nodes_batch with pairwise distances between nodes. 
+
         b,n,_ = logits.shape
 #         logits = logits * torch.exp(self.temperature*10)
         logits = logits * torch.exp(torch.clamp(self.temperature,-5,5))
@@ -251,38 +255,46 @@ class DGM_d(nn.Module):
         unique_graphs = batch.unique(sorted=True)
         edges_list = []
         logprobs_list = []
-        
-        for graph_id in unique_graphs:
-            mask = (batch == graph_id)
-            logits_i = logits[mask][:, mask] 
-            num_nodes_i = logits_i.size(0)
-            
-            logits_i = logits_i * torch.exp(torch.clamp(self.temperature, -5, 5))
-            
-            q = torch.rand_like(logits_i) + 1e-8
-            lq = logits_i - torch.log(-torch.log(q))
-            
-            logprobs, indices = torch.topk(lq, self.k, largest = False)  # Top-k edges for graph i
 
-            print(logprobs, indices)
+        logits = logits * torch.exp(torch.clamp(self.temperature, -5, 5))
+        q = torch.rand_like(logits) + 1e-8 
+        lq = logits - torch.log(-torch.log(q))   # e pure questo 
+
+
+        for graph_id in unique_graphs:
+
+            mask = (batch == graph_id)
+            lq_i = lq[mask][:, mask] 
+            num_nodes_i = lq_i.size(0) 
+
+            
+            logprobs, indices = torch.topk(lq_i, self.k, largest = False)  # i topk edge per il grafo i-esimo (largest = False per selezionare i più piccoli 
+                                                                         # ovvero quelli più simili)
+
 
             rows = torch.arange(num_nodes_i, device=device).view(-1, 1).expand_as(indices)
-            edges = torch.stack((indices.view(-1), rows.view(-1)), dim=-1)
-            # Convert the edges to the original indexing scheme
+            
+            edges = torch.stack((rows.reshape(-1), indices.view(-1))) 
+        
             global_indices = mask.nonzero(as_tuple=True)[0]
+            
             edges = global_indices[edges]
             # cosa sono global indices
             
             edges_list.append(edges)
             logprobs_list.append(logprobs)
         
-        all_edges = torch.cat(edges_list, dim=0)
-        all_logprobs = torch.cat(logprobs_list, dim=0)
+        first_elements = torch.cat([edge[0] for edge in edges_list], dim=0)
+        second_elements = torch.cat([edge[1] for edge in edges_list], dim=0)
+
+        all_edges = torch.stack((first_elements, second_elements), dim=0)
         
+        #all_edges = torch.cat(edges_list, dim=0)
+        
+        all_logprobs = torch.cat(logprobs_list, dim=0)
+
         # if self.sparse:
         #     all_edges = all_edges.transpose(0, 1).reshape(2, -1)
         
         return all_edges, all_logprobs
 
-
-    

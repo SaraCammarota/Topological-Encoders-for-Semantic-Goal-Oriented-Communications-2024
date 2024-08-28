@@ -1,5 +1,5 @@
 defaults:
-  - dataset: nci1
+  - dataset: proteins
   - my_model: model_config
   - dgm: topk_dgm_conf
   - pooling: pooling_conf

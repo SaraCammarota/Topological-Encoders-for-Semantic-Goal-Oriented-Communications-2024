@@ -96,11 +96,7 @@ class Model_channel(pl.LightningModule):
         ptr = data.ptr
         x = self.pre(x)
         # LTI
-
-        print('edges pre dgm')
-        print(data["edge_index"])
-        print(data["edge_index"].shape)
-
+        
         if self.dgm_name == 'alpha_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
         elif self.dgm_name == 'topk_dgm':

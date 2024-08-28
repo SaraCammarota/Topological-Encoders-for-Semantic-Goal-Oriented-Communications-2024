@@ -1,4 +1,4 @@
 test_snr_val: [-10, -5, 0, 5, 10]
-num_trials: 50
+num_trials: 10
 #pooling_ratios: [0.2, 0.4, 0.6, 0.8, 0.9] 
 pooling_ratios: [0.8] 

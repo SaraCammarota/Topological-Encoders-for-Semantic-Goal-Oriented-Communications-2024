@@ -82,7 +82,11 @@ def entmax_batch(x: torch.Tensor, batch: torch.Tensor, ptr, ln, std=0):
 
 
 def create_hyperparameters(config: DictConfig):
-    num_features = config.dataset.parameters.num_features
+    
+    if config.dataset.loader.parameters.data_name == 'MUTAG': 
+        num_features = config.dataset.parameters.num_features[0]
+    else: 
+        num_features = config.dataset.parameters.num_features
     num_classes = config.dataset.parameters.num_classes
 
     hyperparams = {
