@@ -8,6 +8,8 @@ from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPoo
 import hydra
 from omegaconf import DictConfig
 
+#TODO ADD EARLY STOPPING
+
 
 class Model_channel(pl.LightningModule):
     def __init__(self, hparams):
@@ -85,6 +87,11 @@ class Model_channel(pl.LightningModule):
         
         self.num_classes = hparams["num_classes"]
 
+        if hparams["skip_connection"] == True: 
+            self.skip = torch.nn.Linear(hparams["pre_layers"][-1], hparams["conv_layers"][-1])
+        elif hparams["skip_connection"] == False: 
+            self.skip = None
+
     def forward(self, data):
         '''
         data: a batch of data. Must have attributes: x, batch, ptr
@@ -96,7 +103,7 @@ class Model_channel(pl.LightningModule):
         ptr = data.ptr
         x = self.pre(x)
         # LTI
-        
+
         if self.dgm_name == 'alpha_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
         elif self.dgm_name == 'topk_dgm':
@@ -106,9 +113,15 @@ class Model_channel(pl.LightningModule):
             edges = data["edge_index"]
             ne_probs = None
 
+        if self.skip is not None: 
+            skip = self.skip(x)
 
         # FEATURE EXTRACTION
         x = self.gnn(x, edges)
+
+        # Here one might add a skip connection 
+        if self.skip is not None: 
+            x = x + skip
 
         # POOLING  -- how is compression rate defined in this case? rho = k/n where k: num nodes in input; n: num nodes in output. num_features is fixed for now.
         # compression is the "ratio" argument.
@@ -123,6 +136,8 @@ class Model_channel(pl.LightningModule):
 
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
         x = self.noise(x, self.snr_db)
+
+        x = torch.nn.functional.relu(x)
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
         # TODO if noise is mean zero

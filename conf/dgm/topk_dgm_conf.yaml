@@ -1,4 +1,4 @@
 
 name: 'topk_dgm'
-k: 3
+k: 5
 distance: 'euclidean'

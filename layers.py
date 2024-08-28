@@ -126,18 +126,6 @@ def pairwise_euclidean_distances(x, dim=-1):
     dist = torch.cdist(x,x)**2
     return dist, x
 
-# def pairwise_euclidean_distances(x, batch):
-#     # Batch is a vector indicating the graph each node belongs to
-#     #dist = torch.zeros(x.size(0), x.size(0)).to(x.device)
-#     dist = torch.full((x.size(0), x.size(0)), float('inf')).to(x.device)
-
-#     for graph_id in batch.unique():
-#         mask = (batch == graph_id)
-#         #dist[mask][:, mask] = torch.cdist(x[mask], x[mask])**2
-#         dist[mask.nonzero(as_tuple=True)[0].unsqueeze(1), mask.nonzero(as_tuple=True)[0]] = torch.cdist(x[mask], x[mask])**2
-        
-#     return dist, x
-
 # #Poincarè disk distance r=1 (Hyperbolic)
 def pairwise_poincare_distances(x, dim=-1):
     x_norm = (x**2).sum(dim,keepdim=True)
@@ -158,8 +146,6 @@ def sparse_eye(size):
     cls = getattr(torch.sparse, values.type().split(".")[-1])
     return cls(indices, values, torch.Size([size, size])) 
 
-# TODO bisogna aggiungere un check per assicurarsi che il valore selezionato di k non sia troppo grande. non tutti i grafi hanno lo stesso numero di nodi
-    
 
 class DGM_d(nn.Module):
 
@@ -259,18 +245,27 @@ class DGM_d(nn.Module):
         logits = logits * torch.exp(torch.clamp(self.temperature, -5, 5))
         q = torch.rand_like(logits) + 1e-8 
         lq = logits - torch.log(-torch.log(q))   # e pure questo 
+        
+        
+        # TODO bisogna aggiungere un check per assicurarsi che il valore selezionato di k non sia troppo grande. non tutti i grafi hanno lo stesso numero di nodi
 
 
         for graph_id in unique_graphs:
 
+
             mask = (batch == graph_id)
             lq_i = lq[mask][:, mask] 
             num_nodes_i = lq_i.size(0) 
+            k = self.k
+            if num_nodes_i < k: 
+                print(f"Overwriting TopKDGM Configuration. Graph {graph_id} has {num_nodes_i} nodes and selected value for k was {k}.")
 
-            
-            logprobs, indices = torch.topk(lq_i, self.k, largest = False)  # i topk edge per il grafo i-esimo (largest = False per selezionare i più piccoli 
+
+                logprobs, indices = torch.topk(lq_i, num_nodes_i, largest = False)  # i topk edge per il grafo i-esimo (largest = False per selezionare i più piccoli 
                                                                          # ovvero quelli più simili)
 
+            else: 
+                logprobs, indices = torch.topk(lq_i, self.k, largest = False)
 
             rows = torch.arange(num_nodes_i, device=device).view(-1, 1).expand_as(indices)
             
@@ -279,7 +274,6 @@ class DGM_d(nn.Module):
             global_indices = mask.nonzero(as_tuple=True)[0]
             
             edges = global_indices[edges]
-            # cosa sono global indices
             
             edges_list.append(edges)
             logprobs_list.append(logprobs)
@@ -289,9 +283,9 @@ class DGM_d(nn.Module):
 
         all_edges = torch.stack((first_elements, second_elements), dim=0)
         
-        #all_edges = torch.cat(edges_list, dim=0)
-        
-        all_logprobs = torch.cat(logprobs_list, dim=0)
+        #all_logprobs = torch.cat(logprobs_list, dim=0)
+        all_logprobs = None
+        #TODO fix this. there is a problem with cat when self.k gets modified
 
         # if self.sparse:
         #     all_edges = all_edges.transpose(0, 1).reshape(2, -1)

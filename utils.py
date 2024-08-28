@@ -110,7 +110,8 @@ def create_hyperparameters(config: DictConfig):
         "pooling": config.pooling.pooling_type,
         "ratio": config.pooling.pooling_ratio,
         "topk_minscore": config.pooling.topk_minscore,
-        "snr_db": config.my_model.channel.snr_db
+        "snr_db": config.my_model.channel.snr_db,
+        "skip_connection": config.my_model.skip_connection,
     }
 
 
@@ -124,17 +125,17 @@ def custom_collate(batch):
     return Batch.from_data_list(batch)
 
 
-def plot_results(validation_accuracies, validation_std_devs, snr_values, pooling_ratios, pooling_name):
+def plot_results(validation_accuracies, validation_std_devs, snr_values, pooling_ratios, pooling_name, data_name):
 
     for idx, ratio in enumerate(pooling_ratios):
         plt.errorbar(snr_values, validation_accuracies[idx], yerr=validation_std_devs[idx], label=f'Ratio: {ratio}', capsize=5)
 
     plt.xlabel('Validate SNR (dB)')
     plt.ylabel('Validation/Best Accuracy')
-    plt.title('Accuracy vs. SNR')
+    plt.title(f'Accuracy vs. SNR on {data_name}')
     plt.legend(title='Compression Levels')
+    plt.savefig(f'accuracy_vs_snr_{pooling_name}_{data_name}.png')
     plt.show()
-    plt.savefig(f'accuracy_vs_snr_{pooling_name}.png')
     plt.close()
 
 

@@ -26,9 +26,12 @@ def setup_training(config):
     
 
     dataset, dataset_dir = dataset_loader.load()
+
+    if config.dataset.loader.parameters.data_name == 'PROTEINS': 
+        dataset_dir = '.'
     
     transform_config = None
-    preprocessor = PreProcessor(dataset, ".", transform_config)
+    preprocessor = PreProcessor(dataset, dataset_dir, transform_config)
     train_data, validation_data, test_data = preprocessor.load_dataset_splits(config.dataset.split_params)
 
     datamodule = TBXDataloader(train_data, validation_data, test_data, batch_size=config.dataset.dataloader_params.batch_size)
@@ -79,7 +82,7 @@ def train_and_plot(config: DictConfig):
         validation_accuracies.append(snr_accuracies)
         validation_std_devs.append(snr_std_devs)
 
-    plot_results(validation_accuracies, validation_std_devs, config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type)
+    plot_results(validation_accuracies, validation_std_devs, config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name)
 
 
 
@@ -87,8 +90,8 @@ def train_and_plot(config: DictConfig):
 
 if __name__ == "__main__":
     
-    #train_and_plot()
-    setup_training()
+    train_and_plot()
+    #setup_training()
     # trainer, channel, train_loader, val_loader = setup_training()
     # trainer.fit(channel, train_dataloaders=train_loader, val_dataloaders=val_loader)
 

@@ -26,3 +26,4 @@ graph_loss_reg: 1
 poly_loss_reg: 1
 ensemble_steps: 1
 
+skip_connection: True
