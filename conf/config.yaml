@@ -2,7 +2,7 @@ defaults:
   - dataset: mutag
   - my_model: model_config
   - dgm: topk_dgm_conf
-  - pooling: pooling_conf
+  - pooling: sag_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default
@@ -10,13 +10,16 @@ defaults:
 
 
 
-hydra:
-  sweeper:
-    params:
-      # my_model.layers.n_pre: choice(1, 2)
-      # my_model.layers.n_post: choice(1, 2)
-      # my_model.layers.n_conv: choice(1, 2)
-      # my_model.layers.n_dgm_layers: choice(1, 2)
-      #my_model.dropout: choice(0.1, 0.2)           best config previously found on mutag: val_loss, n_pre, n_post, n_conv, n_dgm_layers, lr   --->   0.347 2 1 2 2 5e-3
-      # training.lr: choice(0.001, 0.0005)   
-    
+# hydra:
+#   sweeper:
+#     params:
+#       my_model.layers.n_pre: choice(1, 2)
+#       my_model.layers.n_post: choice(1, 2)
+#       my_model.layers.n_conv: choice(1, 2)
+#       my_model.layers.n_dgm_layers: choice(1, 2)
+#       #my_model.dropout: choice(0.1, 0.2)           best config previously found on mutag and topk pooling: val_loss, n_pre, n_post, n_conv, n_dgm_layers, lr   --->   0.347 2 1 2 2 5e-3
+#       training.lr: choice(0.001, 0.0005)   
+ 
+ 
+ #best config with sag on mutag
+ #29 : my_model.layers.n_pre=2 my_model.layers.n_post=2 my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=1 training.lr=0.0005 0.361   with sag

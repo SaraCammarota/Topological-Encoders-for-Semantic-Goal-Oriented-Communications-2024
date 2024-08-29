@@ -109,7 +109,7 @@ def create_hyperparameters(config: DictConfig):
         "optimizer": "adam",
         "pooling": config.pooling.pooling_type,
         "ratio": config.pooling.pooling_ratio,
-        "topk_minscore": config.pooling.topk_minscore,
+        #"topk_minscore": config.pooling.topk_minscore,
         "snr_db": config.my_model.channel.snr_db,
         "skip_connection": config.my_model.skip_connection,
     }

@@ -1,0 +1,3 @@
+
+pooling_type: 'sag'
+pooling_ratio: 0.8
