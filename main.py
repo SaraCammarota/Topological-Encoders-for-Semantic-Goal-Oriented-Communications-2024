@@ -12,6 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from loaders import *
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
+
 
 
 
@@ -44,6 +46,14 @@ def setup_training(config):
         verbose=True
     )
 
+    checkpoint_callback = ModelCheckpoint(
+        monitor=config.training.early_stopping.monitor, 
+        filename='{epoch:02d}-{val_loss:.2f}',  
+        save_top_k=1,  
+        mode=config.training.early_stopping.mode, 
+        save_weights_only=True  
+    )
+
 
     #wandb_logger = WandbLogger(project='experiments-with-hydra')
     hparams = create_hyperparameters(config)
@@ -51,11 +61,15 @@ def setup_training(config):
     #wandb_logger.log_hyperparams(hparams)
 
     channel = Model_channel(hparams)
-    trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback] )#logger=wandb_logger, log_every_n_steps=10)
+    trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback, checkpoint_callback] )#logger=wandb_logger, log_every_n_steps=10)
 
     trainer.fit(channel, datamodule)
 
-    return trainer, channel, datamodule
+    best_model_path = checkpoint_callback.best_model_path
+    best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+
+
+    return trainer, best_model, datamodule
 
 
 
@@ -69,7 +83,7 @@ def train_and_plot(config: DictConfig):
         config.pooling.pooling_ratio = ratio  
         
         trainer, channel, datamodule = setup_training(config)
-        trainer.fit(channel, datamodule)
+        #trainer.fit(channel, datamodule)
 
         snr_accuracies = []
         snr_std_devs = []
@@ -79,7 +93,7 @@ def train_and_plot(config: DictConfig):
 
             for _ in range(config.exp.num_trials):
                 channel.snr_db = snr
-                test_result = trainer.validate(channel, datamodule) # ATTENZIONE: qui prima era val_loader, non datamodule.
+                test_result = trainer.validate(channel, datamodule) 
                 trial_accuracies.append(test_result[0]['val_acc'])
 
             average_accuracy = np.mean(trial_accuracies)
