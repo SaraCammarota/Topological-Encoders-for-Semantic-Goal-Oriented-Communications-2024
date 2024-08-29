@@ -10,7 +10,7 @@ layers:
   hsize: 32
   n_pre: 2
   n_post: 2
-  n_conv: 2
+  n_conv: 1
   n_dgm_layers: 1
 
 

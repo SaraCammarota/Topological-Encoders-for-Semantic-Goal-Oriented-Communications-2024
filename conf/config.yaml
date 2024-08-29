@@ -2,7 +2,7 @@ defaults:
   - dataset: mutag
   - my_model: model_config
   - dgm: topk_dgm_conf
-  - pooling: sag_conf
+  - pooling: asa_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default
@@ -25,4 +25,4 @@ hydra:
  #29 : my_model.layers.n_pre=2 my_model.layers.n_post=2 my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=1 training.lr=0.0005 0.361   with sag
 
  # with asa
- #29 : my_model.layers.n_pre=2 my_model.layers.n_post=2 my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=1 training.lr=0.0005  0.361
+   #25 : my_model.layers.n_pre=2 my_model.layers.n_post=2 my_model.layers.n_conv=1 my_model.layers.n_dgm_layers=1 training.lr=0.0005  0.386
