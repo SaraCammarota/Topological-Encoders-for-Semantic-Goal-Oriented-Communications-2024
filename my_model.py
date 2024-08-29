@@ -140,7 +140,7 @@ class Model_channel(pl.LightningModule):
         x = torch.nn.functional.relu(x)
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
-        # TODO if noise is mean zero
+        
         x = self.post(x)
 
         return x, edges, ne_probs
@@ -159,15 +159,11 @@ class Model_channel(pl.LightningModule):
 
 
     def training_step(self, batch, batch_idx):
-       # print(f"Batch size: {batch.batch.max().item() + 1}")  # Number of graphs in the batch
+       
         pred, _, _ = self(batch)
         train_lab = batch.y
 
-   
-        #pred = pred[batch.train_mask].float()
-
         tr_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(train_lab, num_classes = self.num_classes).float())
-        #tr_loss = F.binary_cross_entropy_with_logits(pred, train_lab)
 
         if torch.isnan(tr_loss).any() or torch.isnan(pred).any():
             print(f"NaN detected in training data or loss at batch {batch_idx}")
@@ -180,7 +176,6 @@ class Model_channel(pl.LightningModule):
         return tr_loss
 
     def validation_step(self, batch, batch_idx):
-        # Print batch size to check if multiple graphs are being batched
 
         pred, _, _ = self(batch)
         val_lab = batch.y
