@@ -1,8 +1,18 @@
 defaults:
-  - dataset: nci1
+  - dataset: mutag
   - my_model: model_config
   - dgm: topk_dgm_conf
   - pooling: pooling_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default
+
+hydra:
+  sweeper:
+    params:
+      my_model.layers.n_pre: choice(1, 2, 4)
+      my_model.layers.n_post: choice(1, 2, 4)
+      my_model.layers.n_conv: choice(1, 2, 4)
+      my_model.layers.n_dgm_layers: choice(1, 2, 4)
+      my_model.dropout: choice(0.1, 0.2)
+      training.lr: choice(0.01, 0.001, 0.0005)

@@ -18,7 +18,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
-    
+
     dataset_loader = GraphLoader(DictConfig(      
         {"data_dir": "./data",
           "data_name": config.dataset.loader.parameters.data_name, 
@@ -37,13 +37,21 @@ def setup_training(config):
 
     datamodule = TBXDataloader(train_data, validation_data, test_data, batch_size=config.dataset.dataloader_params.batch_size)
 
+    early_stopping_callback = EarlyStopping(
+        monitor=config.training.early_stopping.monitor,
+        patience=config.training.early_stopping.patience,
+        mode=config.training.early_stopping.mode,
+        verbose=True
+    )
+
+
     #wandb_logger = WandbLogger(project='experiments-with-hydra')
     hparams = create_hyperparameters(config)
 
     #wandb_logger.log_hyperparams(hparams)
 
     channel = Model_channel(hparams)
-    trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", )#logger=wandb_logger, log_every_n_steps=10)
+    trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback] )#logger=wandb_logger, log_every_n_steps=10)
 
     trainer.fit(channel, datamodule)
 
@@ -91,8 +99,8 @@ def train_and_plot(config: DictConfig):
 
 if __name__ == "__main__":
     
-    train_and_plot()
-    #setup_training()
+    #train_and_plot()
+    setup_training()
     # trainer, channel, train_loader, val_loader = setup_training()
     # trainer.fit(channel, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
