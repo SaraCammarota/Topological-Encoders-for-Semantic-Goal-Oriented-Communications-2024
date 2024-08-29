@@ -11,6 +11,7 @@ import wandb
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import *
+from pytorch_lightning.callbacks import EarlyStopping
 
 
 
