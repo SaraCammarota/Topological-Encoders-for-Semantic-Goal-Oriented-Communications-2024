@@ -109,6 +109,64 @@ def train_and_plot(config: DictConfig):
 
 
 
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def prova(config):
+    pl.seed_everything(config.my_model.seed)
+
+    dataset_loader = GraphLoader(DictConfig(      
+        {"data_dir": "./data",
+          "data_name": config.dataset.loader.parameters.data_name, 
+          "split_type": config.dataset.split_params.split_type}), 
+            transforms = True)
+    
+
+    dataset, dataset_dir = dataset_loader.load()
+
+    if config.dataset.loader.parameters.data_name == 'PROTEINS': 
+        dataset_dir = '.'
+    
+    transform_config = None
+    preprocessor = PreProcessor(dataset, dataset_dir, transform_config)
+    train_data, validation_data, test_data = preprocessor.load_dataset_splits(config.dataset.split_params)
+
+    datamodule = TBXDataloader(train_data, validation_data, test_data, batch_size=config.dataset.dataloader_params.batch_size)
+
+    early_stopping_callback = EarlyStopping(
+        monitor=config.training.early_stopping.monitor,
+        patience=config.training.early_stopping.patience,
+        mode=config.training.early_stopping.mode,
+        verbose=True
+    )
+
+    checkpoint_callback = ModelCheckpoint(
+        monitor=config.training.early_stopping.monitor, 
+        filename='{epoch:02d}-{val_loss:.2f}',  
+        save_top_k=1,  
+        mode=config.training.early_stopping.mode, 
+        save_weights_only=True  
+    )
+
+
+    #wandb_logger = WandbLogger(project='experiments-with-hydra')
+    hparams = create_hyperparameters(config)
+
+    #wandb_logger.log_hyperparams(hparams)
+
+    channel = Model_channel(hparams)
+    print(channel.snr_db)
+    channel.snr_db = 2
+    print(channel.snr_db)
+    # trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback, checkpoint_callback] )#logger=wandb_logger, log_every_n_steps=10)
+
+    # trainer.fit(channel, datamodule)
+
+    # best_model_path = checkpoint_callback.best_model_path
+    # best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+
+
+    # return trainer, best_model, datamodule
+
+
 
 
 if __name__ == "__main__":
