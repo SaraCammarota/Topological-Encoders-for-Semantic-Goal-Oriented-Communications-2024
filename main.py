@@ -123,8 +123,10 @@ if __name__ == "__main__":
 
 
 
-# TODO repeat same plots on proteins and mutag
+# TODO repeat same plots on proteins
 
 
 
 # mnist graph dataset
+
+# implement also rayleigh fading

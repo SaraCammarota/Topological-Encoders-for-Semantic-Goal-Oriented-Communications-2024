@@ -22,14 +22,15 @@ class Model_channel(pl.LightningModule):
         self.pre = MLP(hparams["pre_layers"], dropout = hparams["dropout"])
         self.gnn = GNN(hparams["conv_layers"], dropout = hparams["dropout"])
         self.pooling_type = hparams["pooling"]
+        self.pooling_ratio = hparams["ratio"]
         if self.pooling_type == 'topk': 
-            self.pool = TopKPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"],) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
+            self.pool = TopKPooling(in_channels = hparams["conv_layers"][-1], ratio = self.pooling_ratio) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
         elif self.pooling_type == 'edge':
             self.pool = EdgePooling(in_channels = hparams["conv_layers"][-1])
         elif self.pooling_type == 'sag': 
-            self.pool = SAGPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"])      
+            self.pool = SAGPooling(in_channels = hparams["conv_layers"][-1], ratio = self.pooling_ratio)      
         elif self.pooling_type == 'asa': 
-            self.pool = ASAPooling(in_channels = hparams["conv_layers"][-1], ratio = hparams["ratio"])      
+            self.pool = ASAPooling(in_channels = hparams["conv_layers"][-1], ratio = self.pooling_ratio)      
         
           
         self.noise = NoiseBlock()
@@ -139,9 +140,9 @@ class Model_channel(pl.LightningModule):
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
         x = self.noise(x, self.snr_db)
 
-        x = self.receiver(x, edges)
+        #x = self.receiver(x, edges)
 
-        #x = torch.nn.functional.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
         

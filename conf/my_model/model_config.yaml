@@ -11,11 +11,11 @@ layers:
   n_pre: 2
   n_post: 2
   n_conv: 3
-  n_dgm_layers: 3
+  n_dgm_layers: 2
   receiver: 3
 
 
-dropout: 0.1
+dropout: 0.0
 use_gcn: true
 
 
