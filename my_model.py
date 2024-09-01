@@ -92,6 +92,8 @@ class Model_channel(pl.LightningModule):
         elif hparams["skip_connection"] == False: 
             self.skip = None
 
+        self.receiver = GNN(hparams['receiver_layers'], dropout= hparams["dropout"])
+
     def forward(self, data):
         '''
         data: a batch of data. Must have attributes: x, batch, ptr
@@ -137,7 +139,9 @@ class Model_channel(pl.LightningModule):
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
         x = self.noise(x, self.snr_db)
 
-        x = torch.nn.functional.relu(x)
+        x = self.receiver(x, edges)
+
+        #x = torch.nn.functional.relu(x)
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
         

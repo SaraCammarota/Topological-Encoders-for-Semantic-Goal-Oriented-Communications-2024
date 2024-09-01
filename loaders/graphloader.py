@@ -220,7 +220,7 @@ class GraphLoader(AbstractLoader):
             dataset = torch_geometric.datasets.TUDataset(
                 root=root_data_dir,
                 name=self.parameters.data_name,
-                use_node_attr=False,
+                use_node_attr= self.parameters.get("use_node_attributes", False),
             )
 
         elif self.parameters.data_name in FIXED_SPLITS_DATASETS:

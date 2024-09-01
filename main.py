@@ -24,7 +24,8 @@ def setup_training(config):
     dataset_loader = GraphLoader(DictConfig(      
         {"data_dir": "./data",
           "data_name": config.dataset.loader.parameters.data_name, 
-          "split_type": config.dataset.split_params.split_type}), 
+          "split_type": config.dataset.split_params.split_type, 
+          "use_node_attributes": config.dataset.loader.parameters.get("use_node_attributes", False)}), 
             transforms = True)
     
 
@@ -105,7 +106,8 @@ def train_and_plot(config: DictConfig):
         validation_accuracies.append(snr_accuracies)
         validation_std_devs.append(snr_std_devs)
 
-    plot_results(validation_accuracies, validation_std_devs, config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name)
+    plot_results(validation_accuracies, validation_std_devs, config.exp.test_snr_val, 
+                 config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name, config.dgm.name)
 
 
 
@@ -116,5 +118,5 @@ def train_and_plot(config: DictConfig):
 if __name__ == "__main__":
     
 
-    train_and_plot()
-    #setup_training()
+    #train_and_plot()
+    setup_training()
