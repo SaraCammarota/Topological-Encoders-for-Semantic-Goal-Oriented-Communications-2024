@@ -9,13 +9,13 @@ data_seed: 0
 layers: 
   hsize: 32
   n_pre: 2
-  n_post: 3
-  n_conv: 2
-  n_dgm_layers: 2
+  n_post: 2
+  n_conv: 3
+  n_dgm_layers: 3
   receiver: 3
 
 
-dropout: 0.0
+dropout: 0.1
 use_gcn: true
 
 

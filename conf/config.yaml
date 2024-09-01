@@ -2,7 +2,7 @@ defaults:
   - dataset: imdb_binary
   - my_model: model_config
   - dgm: topk_dgm_conf
-  - pooling: topk_conf
+  - pooling: asa_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default
@@ -13,13 +13,13 @@ defaults:
 hydra:
   sweeper:
     params:
-      my_model.layers.n_pre: choice(2, 3)
-      my_model.layers.n_post: choice(2, 3)
-      #my_model.layers.n_conv: choice(1, 2)
+      #my_model.layers.n_pre: choice(2, 3)
+      #my_model.layers.n_post: choice(2, 3)
+      my_model.layers.n_conv: choice(2, 3)
       my_model.layers.n_dgm_layers: choice(2, 3)
       my_model.layers.receiver: choice(2, 3)
       #my_model.dropout: choice(0.1, 0.2)         
-      #training.lr: choice(0.001, 0.0005)   
+      training.lr: choice(0.001, 0.0005)   
  
  
 
@@ -40,3 +40,21 @@ hydra:
 
 
 #12 : my_model.layers.n_pre=1 my_model.layers.n_post=2 my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=1 training.lr=0.001    0.317
+
+
+
+
+# on imdb binary
+  
+  #topk pooling
+  
+  #29 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3 my_model.layers.receiver=3 my_model.dropout=0.1 training.lr=0.0005    0.529 
+
+  #sag pooling
+
+  #8 : my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=3 my_model.layers.receiver=2 my_model.dropout=0.1 training.lr=0.001     0.532
+
+  #asa pooling
+  
+  #14 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3 my_model.layers.receiver=3 training.lr=0.001   0.525
+

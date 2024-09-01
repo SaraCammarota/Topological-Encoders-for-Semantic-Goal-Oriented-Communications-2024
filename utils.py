@@ -133,9 +133,9 @@ def plot_results(validation_accuracies, validation_std_devs, snr_values, pooling
 
     plt.xlabel('Validate SNR (dB)')
     plt.ylabel('Validation/Best Accuracy')
-    plt.title(f'Accuracy vs. SNR on {data_name}, with receiver gnn')
+    plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling')
     plt.legend(title='Compression Levels')
-    plt.savefig(f'accuracy_vs_snr_{pooling_name}_{data_name}_{dgm_name}_gnn.png')
+    plt.savefig(f'accuracy_vs_snr_{pooling_name}_{data_name}_{dgm_name}_gnn_on_{data_name}.png')
     plt.show()
     plt.close()
 

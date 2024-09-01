@@ -118,5 +118,5 @@ def train_and_plot(config: DictConfig):
 if __name__ == "__main__":
     
 
-    #train_and_plot()
-    setup_training()
+    train_and_plot()
+    #setup_training()
