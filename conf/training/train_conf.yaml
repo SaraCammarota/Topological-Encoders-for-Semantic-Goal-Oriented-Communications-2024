@@ -1,5 +1,5 @@
 max_epochs: 100
-lr: 0.001
+lr: 0.0005
 early_stopping: 
   monitor: "val_loss"
   patience: 10

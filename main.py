@@ -84,7 +84,6 @@ def train_and_plot(config: DictConfig):
         config.pooling.pooling_ratio = ratio  
         
         trainer, channel, datamodule = setup_training(config)
-        #trainer.fit(channel, datamodule)
 
         snr_accuracies = []
         snr_std_devs = []
@@ -120,3 +119,12 @@ if __name__ == "__main__":
 
     train_and_plot()
     #setup_training()
+
+
+
+
+# TODO repeat same plots on proteins and mutag
+
+
+
+# mnist graph dataset
