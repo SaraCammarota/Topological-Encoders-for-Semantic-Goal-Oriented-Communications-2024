@@ -10,9 +10,9 @@ layers:
   hsize: 32
   n_pre: 2
   n_post: 2
-  n_conv: 3
+  n_conv: 2
   n_dgm_layers: 2
-  receiver: 3
+  receiver: 2
 
 
 dropout: 0.0

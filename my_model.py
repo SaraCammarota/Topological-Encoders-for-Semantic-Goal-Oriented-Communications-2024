@@ -8,7 +8,7 @@ from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPoo
 import hydra
 from omegaconf import DictConfig
 
-#TODO ADD EARLY STOPPING
+
 
 
 class Model_channel(pl.LightningModule):
@@ -138,11 +138,13 @@ class Model_channel(pl.LightningModule):
             batch = pool_output[2]
 
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
-        x = self.noise(x, self.snr_db)
+        # what if we don't take into account the noise during training?
+        if self.training == False:
+            x = self.noise(x, self.snr_db)
 
-        #x = self.receiver(x, edges)
+        x = self.receiver(x, edges)
 
-        x = torch.nn.functional.relu(x)
+        #x = torch.nn.functional.relu(x)
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
         

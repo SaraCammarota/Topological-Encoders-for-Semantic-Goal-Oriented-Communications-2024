@@ -122,11 +122,4 @@ if __name__ == "__main__":
 
 
 
-
-# TODO repeat same plots on proteins
-
-
-
-# mnist graph dataset
-
-# implement also rayleigh fading
+# incorporate also mnist graph dataset and rayleigh fading

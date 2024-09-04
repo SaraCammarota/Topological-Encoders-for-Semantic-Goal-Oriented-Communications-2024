@@ -1,8 +1,8 @@
 defaults:
-  - dataset: imdb_binary
+  - dataset: proteins
   - my_model: model_config
-  - dgm: topk_dgm_conf
-  - pooling: topk_conf
+  - dgm: no_dgm_conf
+  - pooling: sag_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default
@@ -13,14 +13,15 @@ defaults:
 hydra:
   sweeper:
     params:
-      my_model.layers.n_pre: choice(2, 3)
-      my_model.layers.n_post: choice(2, 3)
-      my_model.layers.n_conv: choice(1, 2, 3)
-      my_model.layers.n_dgm_layers: choice(1, 2, 3)
+      #my_model.layers.n_pre: choice(2, 3)
+      #my_model.layers.n_post: choice(2, 3)
+      my_model.layers.n_conv: choice(2, 3)
+      my_model.layers.n_dgm_layers: choice(2, 3)
       #my_model.layers.receiver: choice(2)
       #my_model.dropout: choice(0.1, 0.2)         
       #training.lr: choice(0.001, 0.0005)   
- 
+  
+
  
 
 # best configs with top-5 dgm:
@@ -63,4 +64,17 @@ hydra:
   #asa pooling
 
   #14 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3 my_model.layers.receiver=3 training.lr=0.001   0.525
+
+
+
+# on mutag, without noise in training
+# asa
+#25 : my_model.layers.n_pre=2 my_model.layers.n_post=3 my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=2 training.lr=0.001
+# sag
+ #1 : my_model.layers.n_pre=2 my_model.layers.n_post=2 my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=2 training.lr=0.0005
+# topk
+#26 : my_model.layers.n_pre=3 my_model.layers.n_post=3 my_model.layers.n_conv=2 my_model.layers.n_dgm_layers=3 training.lr=0.001   282 95 80
+#28 : my_model.layers.n_pre=3 my_model.layers.n_post=3 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=2 training.lr=0.001 328 95 81
+
+# on proteins, without noise in training
 
