@@ -112,7 +112,8 @@ def create_hyperparameters(config: DictConfig):
         #"topk_minscore": config.pooling.topk_minscore,
         "snr_db": config.my_model.channel.snr_db,
         "skip_connection": config.my_model.skip_connection,
-        "receiver_layers": [config.my_model.layers.hsize for _ in range(config.my_model.layers.receiver)] 
+        "receiver_layers": [config.my_model.layers.hsize for _ in range(config.my_model.layers.receiver)],
+        "noisy_training": config.training.noisy
     }
 
 
@@ -133,13 +134,37 @@ def plot_results(validation_accuracies, validation_std_devs, snr_values, pooling
 
     plt.xlabel('Validate SNR (dB)')
     plt.ylabel('Validation/Best Accuracy')
-    plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling')
+    plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling, no noise')
     plt.legend(title='Compression Levels')
-    plt.savefig(f'without_noise_in_training/accuracy_vs_snr_{pooling_name}_{data_name}_{dgm_name}_gnn_on_{data_name}.png')
+    plt.savefig(f'new_plots/{data_name}/{pooling_name}/no_noise.png')
     plt.show()
     plt.close()
 
 
+def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs, 
+                      smooth_validation_accuracies, smooth_validation_std_devs, 
+                      snr_values, pooling_ratios, pooling_name, data_name):
+
+    for idx, ratio in enumerate(pooling_ratios):
+
+        color = f'C{idx}'
+        plt.errorbar(snr_values, smooth_validation_accuracies[idx], yerr=smooth_validation_std_devs[idx], 
+                     label=f'Smooth Ratio: {ratio}', color = color, capsize=5, linestyle='-', marker='o')
+
+
+        plt.errorbar(snr_values, noisy_validation_accuracies[idx], yerr=noisy_validation_std_devs[idx], 
+                     label=f'Noisy Ratio: {ratio}', color = color, capsize=5, linestyle='--', marker='x')
+
+    plt.xlabel('Validate SNR (dB)')
+    plt.ylabel('Validation Accuracy')
+    plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling')
+    plt.legend(title='Compression Levels (Clean & Noisy)')
+    plt.grid(True)
+    
+
+    plt.savefig(f'new_plots/{data_name}/{pooling_name}/clean_vs_noisy.png')
+    plt.show()
+    plt.close()
 
 
 class DictObj:

@@ -1,7 +1,7 @@
 defaults:
-  - dataset: proteins
+  - dataset: imdb_binary
   - my_model: model_config
-  - dgm: no_dgm_conf
+  - dgm: topk_dgm_conf
   - pooling: sag_conf
   - training: train_conf
   - exp: snr_conf
@@ -63,7 +63,7 @@ hydra:
 
   #asa pooling
 
-  #14 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3 my_model.layers.receiver=3 training.lr=0.001   0.525
+  #14 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3 my_model.layers.receiver=3 training.lr=0.0005   0.525
 
 
 

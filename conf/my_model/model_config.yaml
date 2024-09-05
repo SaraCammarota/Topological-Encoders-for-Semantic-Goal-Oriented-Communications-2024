@@ -11,7 +11,7 @@ layers:
   n_pre: 2
   n_post: 2
   n_conv: 2
-  n_dgm_layers: 2
+  n_dgm_layers: 3
   receiver: 2
 
 

@@ -32,7 +32,7 @@ class Model_channel(pl.LightningModule):
         elif self.pooling_type == 'asa': 
             self.pool = ASAPooling(in_channels = hparams["conv_layers"][-1], ratio = self.pooling_ratio)      
         
-          
+        self.noisy_training = hparams["noisy_training"]
         self.noise = NoiseBlock()
         #self.snr_db = hparams["snr_db"]
         self.snr_db = None    # in this way, a different snr value is sampled at every forward pass
@@ -99,7 +99,6 @@ class Model_channel(pl.LightningModule):
         '''
         data: a batch of data. Must have attributes: x, batch, ptr
         '''
-
         
         x = data.x.detach()
         batch = data.batch_0
@@ -139,8 +138,18 @@ class Model_channel(pl.LightningModule):
 
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
         # what if we don't take into account the noise during training?
-        if self.training == False:
+
+        if self.noisy_training == True: 
             x = self.noise(x, self.snr_db)
+
+        elif self.noisy_training == False:
+            if self.training == False:
+                x = self.noise(x, self.snr_db)
+
+        else:
+            print('Invalid self.noisy_training value')
+            print(f"self.noisy_training: {self.noisy_training} (type: {type(self.noisy_training)})")
+
 
         x = self.receiver(x, edges)
 
