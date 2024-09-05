@@ -162,7 +162,7 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     plt.grid(True)
     
 
-    plt.savefig(f'new_plots/{data_name}/{pooling_name}/clean_vs_noisy.png')
+    plt.savefig(f'new_plots/use_gcn_false/{data_name}/{pooling_name}/clean_vs_noisy.png')
     plt.show()
     plt.close()
 

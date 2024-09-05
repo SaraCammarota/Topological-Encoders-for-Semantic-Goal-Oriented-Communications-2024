@@ -18,7 +18,7 @@ from hydra.core.global_hydra import GlobalHydra
 
 
 
-
+@hydra.main(version_base=None, config_path="conf", config_name="config")
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
 # incorporate also mnist graph dataset 
 
-# TODO inviare una slide con plottino a pdl
+# TODO inviare una slide con plottino a pdl (Fare mini diagrammino dell'architettura su powerpoint)
 
 # TODO Rayleigh fading lo devo fare e comprarare i risultati
 
