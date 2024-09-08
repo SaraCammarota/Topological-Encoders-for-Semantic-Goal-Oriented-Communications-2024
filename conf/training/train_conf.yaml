@@ -1,5 +1,6 @@
 max_epochs: 100
 lr: 0.001
+optimizer: "adam"
 noisy: True
 early_stopping: 
   monitor: "val_loss"

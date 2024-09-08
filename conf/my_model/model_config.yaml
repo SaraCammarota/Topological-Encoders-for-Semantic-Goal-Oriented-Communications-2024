@@ -16,7 +16,7 @@ layers:
 
 
 dropout: 0.0
-use_gcn: false
+use_gcn: true
 
 
 channel:

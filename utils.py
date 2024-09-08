@@ -106,7 +106,7 @@ def create_hyperparameters(config: DictConfig):
         "use_gcn": config.my_model.use_gcn,
         "dropout": config.my_model.dropout,
         "ensemble_steps": config.my_model.ensemble_steps,
-        "optimizer": "adam",
+        "optimizer": config.training.optimizer,
         "pooling": config.pooling.pooling_type,
         "ratio": config.pooling.pooling_ratio,
         #"topk_minscore": config.pooling.topk_minscore,
@@ -162,7 +162,7 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     plt.grid(True)
     
 
-    plt.savefig(f'new_plots/use_gcn_false/{data_name}/{pooling_name}/clean_vs_noisy.png')
+    plt.savefig(f'new_plots/use_gcn_false/{data_name}/{pooling_name}/clean_vs_noisy__MLP.png')
     plt.show()
     plt.close()
 
