@@ -4,7 +4,7 @@ from entmax import entmax15
 from omegaconf import DictConfig
 from torch_geometric.data import Batch
 import matplotlib.pyplot as plt
-    
+import os
 
 
 class LayerNorm(nn.Module):
@@ -143,7 +143,9 @@ def plot_results(validation_accuracies, validation_std_devs, snr_values, pooling
 
 def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs, 
                       smooth_validation_accuracies, smooth_validation_std_devs, 
-                      snr_values, pooling_ratios, pooling_name, data_name):
+                      config):
+    
+    snr_values, pooling_ratios, pooling_name, data_name = config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name
 
     for idx, ratio in enumerate(pooling_ratios):
 
@@ -161,8 +163,10 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     plt.legend(title='Compression Levels (Clean & Noisy)')
     plt.grid(True)
     
+    folder_path = f'new_plots/use_gcn_{config.my_model.use_gcn}/{data_name}/{pooling_name}'
+    os.makedirs(folder_path, exist_ok=True)
 
-    plt.savefig(f'new_plots/use_gcn_false/{data_name}/{pooling_name}/clean_vs_noisy__MLP.png')
+    plt.savefig(f'{folder_path}/clean_vs_noisy__MLP.png')
     plt.show()
     plt.close()
 

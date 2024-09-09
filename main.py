@@ -157,8 +157,7 @@ def train_and_plot_same(config: DictConfig):
 
     smooth_validation_accuracies, smooth_validation_std_devs = return_train_and_plot(config)
 
-    plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs, smooth_validation_accuracies, smooth_validation_std_devs, config.exp.test_snr_val, 
-                config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name)
+    plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs, smooth_validation_accuracies, smooth_validation_std_devs, config)
 
 
 
