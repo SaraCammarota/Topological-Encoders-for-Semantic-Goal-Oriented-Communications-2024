@@ -4,6 +4,8 @@ import torch.nn.init as init
 from torch_geometric.nn import GCNConv
 from utils import *
 import torch
+from sklearn.cluster import KMeans as SklearnKMeans
+
 
 class GNN(nn.Module):
     def __init__(self, layers_size, dropout=0.0, last_act=False):
@@ -292,3 +294,51 @@ class DGM_d(nn.Module):
         
         return all_edges, all_logprobs
 
+
+
+class KMeans(nn.Module):
+    def __init__(self, ratio, init='k-means++', max_iter=300, tol=1e-4):
+        """
+        Initialize the KMeans clustering module.
+
+        Args:
+            n_clusters (int): Number of clusters to form.
+            init (str): Method for initialization, defaults to 'k-means++'.
+            max_iter (int): Maximum number of iterations of the k-means algorithm for a single run.
+            tol (float): Relative tolerance with regards to inertia to declare convergence.
+        """
+        super(KMeans, self).__init__()
+        self.ratio = ratio
+        self.init = init
+        self.max_iter = max_iter
+        self.tol = tol
+        self.kmeans = None
+
+    def forward(self, X):
+        """
+        Perform K-means clustering on the input data X and return the cluster centers (centroids).
+
+        Args:
+            X (torch.Tensor): Input data of shape (N, D), where N is the number of samples and D is the feature dimension.
+
+        Returns:
+            centroids (torch.Tensor): Cluster centers of shape (n_clusters, D).
+        """
+
+        with torch.no_grad():
+
+            X_np = X.cpu().numpy()
+            print("X_np")
+            print(X_np.size(), X_np.size(0))
+            n_clusters = round(self.ratio * X_np.size(0))
+            print("n_clusters")
+            print(n_clusters)
+
+            self.kmeans = SklearnKMeans(n_clusters=n_clusters, init=self.init, max_iter=self.max_iter, tol=self.tol)
+            self.kmeans.fit(X_np)
+
+            centroids_np = self.kmeans.cluster_centers_
+
+            centroids = torch.tensor(centroids_np, dtype=X.dtype, device=X.device)
+
+        return centroids

@@ -13,13 +13,12 @@ import matplotlib.pyplot as plt
 from loaders import *
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from hydra import initialize, compose
-from hydra.core.global_hydra import GlobalHydra
-
+from baseline_models import MLP_KMeans
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def setup_training(config):
+    print(OmegaConf.to_yaml(config))
     pl.seed_everything(config.my_model.seed)
 
     dataset_loader = GraphLoader(DictConfig(      
@@ -62,7 +61,8 @@ def setup_training(config):
 
     #wandb_logger.log_hyperparams(hparams)
 
-    channel = Model_channel(hparams)
+    #channel = Model_channel(hparams)
+    channel = MLP_KMeans(hparams)
     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback, checkpoint_callback] )#logger=wandb_logger, log_every_n_steps=10)
 
     trainer.fit(channel, datamodule)
@@ -75,91 +75,89 @@ def setup_training(config):
 
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
-def train_and_plot(config: DictConfig):
-    validation_accuracies = []
-    validation_std_devs = []
+# @hydra.main(version_base=None, config_path="conf", config_name="config")
+# def train_and_plot(config: DictConfig):
+#     validation_accuracies = []
+#     validation_std_devs = []
 
-    for ratio in config.exp.pooling_ratios:
+#     for ratio in config.exp.pooling_ratios:
         
-        config.pooling.pooling_ratio = ratio  
+#         config.pooling.pooling_ratio = ratio  
         
-        trainer, channel, datamodule = setup_training(config)
+#         trainer, channel, datamodule = setup_training(config)
 
-        snr_accuracies = []
-        snr_std_devs = []
+#         snr_accuracies = []
+#         snr_std_devs = []
 
-        for snr in config.exp.test_snr_val:
-            trial_accuracies = []
+#         for snr in config.exp.test_snr_val:
+#             trial_accuracies = []
 
-            for _ in range(config.exp.num_trials):
-                channel.snr_db = snr
-                test_result = trainer.validate(channel, datamodule) 
-                trial_accuracies.append(test_result[0]['val_acc'])
+#             for _ in range(config.exp.num_trials):
+#                 channel.snr_db = snr
+#                 test_result = trainer.validate(channel, datamodule) 
+#                 trial_accuracies.append(test_result[0]['val_acc'])
 
-            average_accuracy = np.mean(trial_accuracies)
-            std_dev_accuracy = np.std(trial_accuracies)
+#             average_accuracy = np.mean(trial_accuracies)
+#             std_dev_accuracy = np.std(trial_accuracies)
 
-            snr_accuracies.append(average_accuracy)
-            snr_std_devs.append(std_dev_accuracy) 
+#             snr_accuracies.append(average_accuracy)
+#             snr_std_devs.append(std_dev_accuracy) 
         
-        validation_accuracies.append(snr_accuracies)
-        validation_std_devs.append(snr_std_devs)
+#         validation_accuracies.append(snr_accuracies)
+#         validation_std_devs.append(snr_std_devs)
 
-    plot_results(validation_accuracies, validation_std_devs, config.exp.test_snr_val, 
-                 config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name, config.dgm.name)
+#     plot_results(validation_accuracies, validation_std_devs, config.exp.test_snr_val, 
+#                  config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name, config.dgm.name)
 
 
 
-def return_train_and_plot(config: DictConfig):
-    validation_accuracies = []
-    validation_std_devs = []
+# def return_train_and_plot(config: DictConfig):
+#     validation_accuracies = []
+#     validation_std_devs = []
 
-    for ratio in config.exp.pooling_ratios:
+#     for ratio in config.exp.pooling_ratios:
         
-        config.pooling.pooling_ratio = ratio  
+#         config.pooling.pooling_ratio = ratio  
         
-        trainer, channel, datamodule = setup_training(config)
+#         trainer, channel, datamodule = setup_training(config)
 
-        snr_accuracies = []
-        snr_std_devs = []
+#         snr_accuracies = []
+#         snr_std_devs = []
 
-        for snr in config.exp.test_snr_val:
-            trial_accuracies = []
+#         for snr in config.exp.test_snr_val:
+#             trial_accuracies = []
 
-            for _ in range(config.exp.num_trials):
-                channel.snr_db = snr
-                test_result = trainer.validate(channel, datamodule) 
-                trial_accuracies.append(test_result[0]['val_acc'])
+#             for _ in range(config.exp.num_trials):
+#                 channel.snr_db = snr
+#                 test_result = trainer.validate(channel, datamodule) 
+#                 trial_accuracies.append(test_result[0]['val_acc'])
 
-            average_accuracy = np.mean(trial_accuracies)
-            std_dev_accuracy = np.std(trial_accuracies)
+#             average_accuracy = np.mean(trial_accuracies)
+#             std_dev_accuracy = np.std(trial_accuracies)
 
-            snr_accuracies.append(average_accuracy)
-            snr_std_devs.append(std_dev_accuracy) 
+#             snr_accuracies.append(average_accuracy)
+#             snr_std_devs.append(std_dev_accuracy) 
         
-        validation_accuracies.append(snr_accuracies)
-        validation_std_devs.append(snr_std_devs)
+#         validation_accuracies.append(snr_accuracies)
+#         validation_std_devs.append(snr_std_devs)
 
-    return validation_accuracies, validation_std_devs
+#     return validation_accuracies, validation_std_devs
 
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
-def train_and_plot_same(config: DictConfig):
+# @hydra.main(version_base=None, config_path="conf", config_name="config")
+# def train_and_plot_same(config: DictConfig):
 
-    config.training.noisy = True
+#     config.training.noisy = True
     
 
-    noisy_validation_accuracies, noisy_validation_std_devs = return_train_and_plot(config)
+#     noisy_validation_accuracies, noisy_validation_std_devs = return_train_and_plot(config)
 
-    config.training.noisy = False
+#     config.training.noisy = False
 
-    smooth_validation_accuracies, smooth_validation_std_devs = return_train_and_plot(config)
+#     smooth_validation_accuracies, smooth_validation_std_devs = return_train_and_plot(config)
 
-    plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs, smooth_validation_accuracies, smooth_validation_std_devs, config)
-
-
+#     plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs, smooth_validation_accuracies, smooth_validation_std_devs, config)
 
 
 
@@ -167,14 +165,12 @@ def train_and_plot_same(config: DictConfig):
 if __name__ == "__main__":
 
     #train_and_plot()
-    #setup_training()
-    train_and_plot_same()
+    setup_training()
+    #train_and_plot_same()
 
 
 
 # incorporate also mnist graph dataset 
-
-# TODO inviare una slide con plottino a pdl (Fare mini diagrammino dell'architettura su powerpoint)
 
 # TODO Rayleigh fading lo devo fare e comprarare i risultati
 

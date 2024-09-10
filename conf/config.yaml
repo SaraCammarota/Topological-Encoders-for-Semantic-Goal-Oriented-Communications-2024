@@ -9,7 +9,6 @@ defaults:
 
 
 
-
 hydra:
   sweeper:
     params:
@@ -20,9 +19,7 @@ hydra:
       my_model.layers.receiver: choice(2, 3)
       #my_model.dropout: choice(0.1, 0.2)         
       #training.lr: choice(0.001, 0.0005)   
-  
 
- 
 
 # best configs with top-5 dgm:
 
@@ -78,3 +75,14 @@ hydra:
 
 # on proteins, without noise in training
 
+
+
+
+# # # # # # # # # # # # BASELINE CONFIGURATION # # # # # # # # # # # #
+
+baseline: 
+  - dataset: 
+  - my_model: kmeans
+  - training: train_conf
+  - exp: snr_conf
+  - paths: default

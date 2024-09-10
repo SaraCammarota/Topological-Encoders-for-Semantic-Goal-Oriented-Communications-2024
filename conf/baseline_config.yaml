@@ -1,0 +1,9 @@
+defaults: 
+  - _self_
+  - dataset: imdb_binary
+  - my_model: kmeans
+  - training: train_conf
+  - exp: snr_conf
+  - paths: default
+
+ 

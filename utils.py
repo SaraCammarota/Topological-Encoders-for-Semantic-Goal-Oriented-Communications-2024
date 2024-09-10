@@ -80,44 +80,43 @@ def entmax_batch(x: torch.Tensor, batch: torch.Tensor, ptr, ln, std=0):
     return edges, logprobs
 
 
-
 def create_hyperparameters(config: DictConfig):
     
     if config.dataset.loader.parameters.data_name == 'MUTAG': 
         num_features = config.dataset.parameters.num_features[0]
     else: 
         num_features = config.dataset.parameters.num_features
+    
     num_classes = config.dataset.parameters.num_classes
+
 
     hyperparams = {
         "num_features": num_features,
         "num_classes": num_classes,
-        "pre_layers" : [num_features] + [config.my_model.layers.hsize for _ in range(config.my_model.layers.n_pre)],
-        "conv_layers": [config.my_model.layers.hsize for _ in range(config.my_model.layers.n_conv)],
-        "post_layers" : [config.my_model.layers.hsize for _ in range(config.my_model.layers.n_post)] + [num_classes],
-        "dgm_layers": [config.my_model.layers.hsize for _ in range(config.my_model.layers.n_dgm_layers + 1)],
-        "lr": config.training.lr,
-        #"k": 4,  
-        "dgm_name": config.dgm.name, 
-        "gamma": config.dgm.get("gamma", 0),
-        "std": config.dgm.get("std", 0),
-        "k": config.dgm.get("k", 0),
-        "distance": config.get("dgm.distance", 'euclidean'),
-        "use_gcn": config.my_model.use_gcn,
-        "dropout": config.my_model.dropout,
-        "ensemble_steps": config.my_model.ensemble_steps,
-        "optimizer": config.training.optimizer,
-        "pooling": config.pooling.pooling_type,
-        "ratio": config.pooling.pooling_ratio,
-        #"topk_minscore": config.pooling.topk_minscore,
-        "snr_db": config.my_model.channel.snr_db,
-        "skip_connection": config.my_model.skip_connection,
-        "receiver_layers": [config.my_model.layers.hsize for _ in range(config.my_model.layers.receiver)],
-        "noisy_training": config.training.noisy
+        "pre_layers" : [num_features] + [config.my_model.layers.get("hsize", 64) for _ in range(config.my_model.layers.get("n_pre", 2) )],
+        "conv_layers": [config.my_model.layers.get("hsize", 64) for _ in range(config.my_model.layers.get("n_conv", 2) )],
+        "post_layers" : [config.my_model.layers.get("hsize", 64) for _ in range(config.my_model.layers.get("n_post", 2) )] + [num_classes],
+        "dgm_layers": [config.my_model.layers.get("hsize", 64) for _ in range(config.my_model.layers.get("n_dgm_layers", 2) + 1)],
+        "lr": config.training.get('lr', 0.001),
+        "dgm_name": config.dgm.get('name', 'no_dgm'),
+        "gamma": config.dgm.get('gamma', 0),
+        "std": config.dgm.get('std', 0),
+        "k": config.dgm.get("k", 4),
+        "distance": config.dgm.get('distance', 'euclidean'),
+        "use_gcn": config.my_model.get('my_model.use_gcn', False),
+        "dropout": config.my_model.get('dropout', 0.5),
+        "ensemble_steps": config.my_model.get('my_model.ensemble_steps', 1),
+        "optimizer": config.training.get('optimizer', 'adam'),
+        "pooling": config.pooling.get('pooling_type', 'default_pooling'),
+        "ratio": config.pooling.get('pooling_ratio', 0.5),
+        "snr_db": config.my_model.channel.get('snr_db', 10),
+        "skip_connection": config.my_model.get('skip_connection', False),
+        "receiver_layers": [config.my_model.layers.get('hsize', 64) for _ in range(config.my_model.layers.get('receiver', 64) )],
+        "noisy_training": config.training.get('noisy', False)
     }
 
-
     return hyperparams
+
 
 
 
