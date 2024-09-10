@@ -150,25 +150,36 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     for idx, ratio in enumerate(pooling_ratios):
 
         color = f'C{idx}'
+        
         plt.errorbar(snr_values, smooth_validation_accuracies[idx], yerr=smooth_validation_std_devs[idx], 
-                     label=f'Smooth Ratio: {ratio}', color = color, capsize=5, linestyle='-', marker='o')
-
+                     label=f'Pooling Ratio: {ratio}', color=color, capsize=5, linestyle='-', marker='o')
 
         plt.errorbar(snr_values, noisy_validation_accuracies[idx], yerr=noisy_validation_std_devs[idx], 
-                     label=f'Noisy Ratio: {ratio}', color = color, capsize=5, linestyle='--', marker='x')
+                     color=color, capsize=5, linestyle='--', marker='x')
 
     plt.xlabel('Validate SNR (dB)')
     plt.ylabel('Validation Accuracy')
     plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling')
-    plt.legend(title='Compression Levels (Clean & Noisy)')
+
+    handles = [
+        plt.Line2D([0], [0], color='black', linestyle='-', marker='o', label='Trained without Noise'),
+        plt.Line2D([0], [0], color='black', linestyle='--', marker='x', label='Trained with Noise'),
+    ]
+
+    for idx, ratio in enumerate(pooling_ratios):
+        handles.append(plt.Line2D([0], [0], color=f'C{idx}', label=f'Pooling Ratio: {ratio}'))
+
+
+    plt.legend(handles=handles, title='', fontsize=15, ncol=2)  
     plt.grid(True)
-    
+
     folder_path = f'new_plots/use_gcn_{config.my_model.use_gcn}/{data_name}/{pooling_name}'
     os.makedirs(folder_path, exist_ok=True)
 
-    plt.savefig(f'{folder_path}/clean_vs_noisy__MLP.png')
+    plt.savefig(f'{folder_path}/clean_vs_noisy__MLP_new_legend.png')
     plt.show()
     plt.close()
+
 
 
 class DictObj:
