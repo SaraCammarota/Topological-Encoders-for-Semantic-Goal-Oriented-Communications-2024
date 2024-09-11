@@ -47,6 +47,7 @@ class MLP_KMeans(pl.LightningModule):
             raise ValueError(f"Invalid number of classes ({hparams['num_classes']}).")
         
         self.num_classes = hparams["num_classes"]
+        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])
 
 
     def forward(self, data):
@@ -61,7 +62,7 @@ class MLP_KMeans(pl.LightningModule):
         x = self.pre(x)
 
         # CLUSTERING    instead of pooling
-        x = self.cluster(x)    #this should return the centroids (TODO, devo passargli qualcosa per cui capisce quanti cluster)
+        x, batch = self.cluster(x, batch)    # centroids are returned
 
 
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
@@ -79,7 +80,9 @@ class MLP_KMeans(pl.LightningModule):
 
 
         # RECEIVER
-        x = self.post(x)            # TODO: adjust the dimensions correctly
+        x = self.receiver(x)
+        x = global_mean_pool(x, batch)
+        x = self.post(x)           
 
         return x
 

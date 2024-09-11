@@ -1,0 +1,3 @@
+
+pooling_type: 'kmeans'
+pooling_ratio: 0.1

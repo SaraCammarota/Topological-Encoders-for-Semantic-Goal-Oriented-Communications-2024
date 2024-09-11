@@ -296,13 +296,14 @@ class DGM_d(nn.Module):
 
 
 
+
 class KMeans(nn.Module):
     def __init__(self, ratio, init='k-means++', max_iter=300, tol=1e-4):
         """
         Initialize the KMeans clustering module.
 
         Args:
-            n_clusters (int): Number of clusters to form.
+            ratio (float): Ratio to determine the number of clusters based on the number of nodes in each graph.
             init (str): Method for initialization, defaults to 'k-means++'.
             max_iter (int): Maximum number of iterations of the k-means algorithm for a single run.
             tol (float): Relative tolerance with regards to inertia to declare convergence.
@@ -314,31 +315,44 @@ class KMeans(nn.Module):
         self.tol = tol
         self.kmeans = None
 
-    def forward(self, X):
+    def forward(self, X, batch):
         """
-        Perform K-means clustering on the input data X and return the cluster centers (centroids).
+        Perform K-means clustering on the input data X for each graph and adjust batch information.
 
         Args:
             X (torch.Tensor): Input data of shape (N, D), where N is the number of samples and D is the feature dimension.
+            batch (torch.Tensor): Batch tensor indicating the graph each node belongs to.
 
         Returns:
-            centroids (torch.Tensor): Cluster centers of shape (n_clusters, D).
+            centroids (torch.Tensor): Cluster centers of shape (n_clusters_total, D).
+            new_batch (torch.Tensor): Updated batch tensor reflecting the new batch assignment for centroids.
         """
-
+        unique_graphs = batch.unique()
+        centroids_list = []
+        new_batch_list = []
+        
         with torch.no_grad():
+            for graph_id in unique_graphs:
+                
+                graph_mask = batch == graph_id
+                X_graph = X[graph_mask]
 
-            X_np = X.cpu().numpy()
-            print("X_np")
-            print(X_np.size(), X_np.size(0))
-            n_clusters = round(self.ratio * X_np.size(0))
-            print("n_clusters")
-            print(n_clusters)
+                X_graph_np = X_graph.cpu().numpy()
 
-            self.kmeans = SklearnKMeans(n_clusters=n_clusters, init=self.init, max_iter=self.max_iter, tol=self.tol)
-            self.kmeans.fit(X_np)
+                n_clusters = max(1, round(self.ratio * X_graph_np.shape[0]))  
+                
+                self.kmeans = SklearnKMeans(n_clusters=n_clusters, init=self.init, max_iter=self.max_iter, tol=self.tol)
+                self.kmeans.fit(X_graph_np)
 
-            centroids_np = self.kmeans.cluster_centers_
+                centroids_np = self.kmeans.cluster_centers_
 
-            centroids = torch.tensor(centroids_np, dtype=X.dtype, device=X.device)
+                centroids = torch.tensor(centroids_np, dtype=X.dtype, device=X.device)
 
-        return centroids
+                centroids_list.append(centroids)
+
+                new_batch_list.append(torch.full((centroids.shape[0],), graph_id, dtype=batch.dtype, device=batch.device))
+
+        centroids = torch.cat(centroids_list, dim=0)
+        new_batch = torch.cat(new_batch_list, dim=0)
+
+        return centroids, new_batch

@@ -2,8 +2,8 @@ defaults:
   - _self_
   - dataset: imdb_binary
   - my_model: kmeans
+  - dgm: no_dgm_conf   #dummy
+  - pooling: kmeans   #dummy
   - training: train_conf
   - exp: snr_conf
   - paths: default
-
- 

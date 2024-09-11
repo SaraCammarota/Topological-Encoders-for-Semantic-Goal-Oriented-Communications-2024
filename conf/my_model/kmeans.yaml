@@ -7,7 +7,7 @@ seed: 42
 data_seed: 0
 
 layers: 
-  hsize: 32
+  hsize: 64
   n_pre: 2
   n_post: 2
   receiver: 3
