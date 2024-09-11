@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 from layers import MLP, NoiseBlock, KMeans
 import hydra
 from omegaconf import DictConfig
-
+import warnings
 
 
 
@@ -62,7 +62,9 @@ class MLP_KMeans(pl.LightningModule):
         x = self.pre(x)
 
         # CLUSTERING    instead of pooling
-        x, batch = self.cluster(x, batch)    # centroids are returned
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            x, batch = self.cluster(x, batch)    # centroids are returned
 
 
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE

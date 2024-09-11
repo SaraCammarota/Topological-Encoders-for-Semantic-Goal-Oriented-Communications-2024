@@ -298,7 +298,7 @@ class DGM_d(nn.Module):
 
 
 class KMeans(nn.Module):
-    def __init__(self, ratio, init='k-means++', max_iter=300, tol=1e-4):
+    def __init__(self, ratio, init='k-means++', max_iter=300, tol=1e-4, n_init = 10):
         """
         Initialize the KMeans clustering module.
 
@@ -314,6 +314,7 @@ class KMeans(nn.Module):
         self.max_iter = max_iter
         self.tol = tol
         self.kmeans = None
+        self.n_init = n_init
 
     def forward(self, X, batch):
         """
@@ -341,7 +342,7 @@ class KMeans(nn.Module):
 
                 n_clusters = max(1, round(self.ratio * X_graph_np.shape[0]))  
                 
-                self.kmeans = SklearnKMeans(n_clusters=n_clusters, init=self.init, max_iter=self.max_iter, tol=self.tol)
+                self.kmeans = SklearnKMeans(n_clusters=n_clusters, init=self.init, max_iter=self.max_iter, tol=self.tol, n_init = self.n_init)
                 self.kmeans.fit(X_graph_np)
 
                 centroids_np = self.kmeans.cluster_centers_

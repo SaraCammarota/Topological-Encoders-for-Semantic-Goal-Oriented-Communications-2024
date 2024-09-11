@@ -69,7 +69,8 @@ def setup_training(config):
     trainer.fit(channel, datamodule)
 
     best_model_path = checkpoint_callback.best_model_path
-    best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+    #best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+    best_model = MLP_KMeans.load_from_checkpoint(best_model_path, hparams=hparams)
 
 
     return trainer, best_model, datamodule
