@@ -16,9 +16,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from baseline_models import MLP_KMeans
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="conf", config_name="baseline_config")
 def setup_training(config):
-    print(OmegaConf.to_yaml(config))
     pl.seed_everything(config.my_model.seed)
 
     dataset_loader = GraphLoader(DictConfig(      
