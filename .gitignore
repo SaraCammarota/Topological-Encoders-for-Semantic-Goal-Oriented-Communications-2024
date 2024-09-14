@@ -7,3 +7,5 @@ data
 datasets
 lightning_logs
 multirun
+model_channel
+baseline_perceiver
