@@ -114,6 +114,7 @@ def create_hyperparameters(config: DictConfig):
         "receiver_layers": [num_features] + [config.my_model.layers.get('hsize', 64) for _ in range(config.my_model.layers.get('receiver', 64) )],
         "noisy_training": config.training.get('noisy', False),
         "pca_dim": config.pooling.get('pca_dim', None),
+        "avg_num_nodes": config.dataset.parameters.get("avg_num_nodes", None),
     }
 
     return hyperparams

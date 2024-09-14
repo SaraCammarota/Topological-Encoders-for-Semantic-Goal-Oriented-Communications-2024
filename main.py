@@ -13,10 +13,13 @@ import matplotlib.pyplot as plt
 from loaders import *
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from baseline_models import MLP_KMeans, MLP_PCA
+from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="conf", config_name="baseline_config")
+
+# we can do a "test" with IMDB-BINARY where the avg number of nodes per graph is 19.8 --> if we compress 50%, latent dimension is 10.
+
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
 
@@ -55,20 +58,22 @@ def setup_training(config):
     )
 
 
-    wandb_logger = WandbLogger(project='baseline_perceiver')
+    #wandb_logger = WandbLogger(project='baseline_perceiver')
     hparams = create_hyperparameters(config)
 
-    wandb_logger.log_hyperparams(hparams)
+    #wandb_logger.log_hyperparams(hparams)
 
-    channel = Model_channel(hparams)
+    # channel = Model_channel(hparams)
+    channel = Perceiver_channel(hparams)
     #channel = MLP_PCA(hparams)
     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback, checkpoint_callback] )#logger=wandb_logger, log_every_n_steps=10)
 
     trainer.fit(channel, datamodule)
     
     best_model_path = checkpoint_callback.best_model_path
-    best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+    #best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
     #best_model = MLP_PCA.load_from_checkpoint(best_model_path, hparams=hparams)
+    best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
 
 
     return trainer, best_model, datamodule
@@ -165,6 +170,6 @@ def train_and_plot_same(config: DictConfig):
 if __name__ == "__main__":
 
     #train_and_plot()
-    #setup_training()
-    train_and_plot_same()
+    setup_training()
+    #train_and_plot_same()
 

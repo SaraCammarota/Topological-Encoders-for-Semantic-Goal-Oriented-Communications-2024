@@ -3,7 +3,7 @@ defaults:
   - dataset: imdb_binary
   - my_model: pca
   - dgm: no_dgm_conf   #dummy
-  - pooling: pca
+  - pooling: perceiver
   - training: train_conf
   - exp: snr_conf
   - paths: default
