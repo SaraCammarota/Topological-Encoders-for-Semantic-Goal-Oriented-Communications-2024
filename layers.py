@@ -246,10 +246,8 @@ class DGM_d(nn.Module):
 
         logits = logits * torch.exp(torch.clamp(self.temperature, -5, 5))
         q = torch.rand_like(logits) + 1e-8 
-        lq = logits - torch.log(-torch.log(q))   # e pure questo 
+        lq = logits - torch.log(-torch.log(q))
         
-        
-        # TODO bisogna aggiungere un check per assicurarsi che il valore selezionato di k non sia troppo grande. non tutti i grafi hanno lo stesso numero di nodi
 
 
         for graph_id in unique_graphs:
@@ -287,7 +285,7 @@ class DGM_d(nn.Module):
         
         #all_logprobs = torch.cat(logprobs_list, dim=0)
         all_logprobs = None
-        #TODO fix this. there is a problem with cat when self.k gets modified
+        #there is a problem with cat when self.k gets modified
 
         # if self.sparse:
         #     all_edges = all_edges.transpose(0, 1).reshape(2, -1)

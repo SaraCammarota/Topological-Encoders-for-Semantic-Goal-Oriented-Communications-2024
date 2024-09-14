@@ -135,9 +135,15 @@ def plot_results(validation_accuracies, validation_std_devs, snr_values, pooling
 
     plt.xlabel('Validate SNR (dB)')
     plt.ylabel('Validation/Best Accuracy')
-    plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling, no noise')
+    # plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling, no noise')
     plt.legend(title='Compression Levels')
-    plt.savefig(f'new_plots/{data_name}/{pooling_name}/no_noise.png')
+    # plt.savefig(f'new_plots/{data_name}/{pooling_name}/no_noise.png')
+    # plt.show()
+    # plt.close()
+    folder_path = f'perceiver/{data_name}/{pooling_name}'
+    os.makedirs(folder_path, exist_ok=True)
+
+    plt.savefig(f'{folder_path}.png')
     plt.show()
     plt.close()
 
@@ -173,10 +179,11 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     
     plt.grid(True)
 
-    folder_path = f'new_plots/use_gcn_{config.my_model.use_gcn}/{data_name}/{pooling_name}'
+    folder_path = f'new_plots/use_gcn_{config.my_model.use_gcn}/{data_name}/{pooling_name}/{config.dgm.name}'
+    #folder_path = f'perceiver/{data_name}/{pooling_name}'
     os.makedirs(folder_path, exist_ok=True)
 
-    plt.savefig(f'{folder_path}/prova.png')
+    plt.savefig(f'{folder_path}.png')
     plt.show()
     plt.close()
 

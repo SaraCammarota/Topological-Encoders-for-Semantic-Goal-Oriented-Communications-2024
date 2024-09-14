@@ -16,7 +16,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="baseline_config")
+@hydra.main(version_base=None, config_path="conf", config_name="config")
 
 # we can do a "test" with IMDB-BINARY where the avg number of nodes per graph is 19.8 --> if we compress 50%, latent dimension is 10.
 
@@ -58,15 +58,16 @@ def setup_training(config):
     )
 
 
-    #wandb_logger = WandbLogger(project='baseline_perceiver')
+    # wandb_logger = WandbLogger(project='baseline_perceiver')
+    wandb_logger = WandbLogger(project='model_channel')
     hparams = create_hyperparameters(config)
 
-    #wandb_logger.log_hyperparams(hparams)
+    wandb_logger.log_hyperparams(hparams)
 
     # channel = Model_channel(hparams)
     channel = Perceiver_channel(hparams)
     #channel = MLP_PCA(hparams)
-    trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback, checkpoint_callback] )#logger=wandb_logger, log_every_n_steps=10)
+    trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[early_stopping_callback, checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
 
     trainer.fit(channel, datamodule)
     
@@ -80,7 +81,7 @@ def setup_training(config):
 
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="conf", config_name="baseline_config")
 def train_and_plot(config: DictConfig):
     validation_accuracies = []
     validation_std_devs = []
@@ -170,6 +171,6 @@ def train_and_plot_same(config: DictConfig):
 if __name__ == "__main__":
 
     #train_and_plot()
-    setup_training()
-    #train_and_plot_same()
+    #setup_training()
+    train_and_plot_same()
 

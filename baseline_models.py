@@ -376,7 +376,6 @@ class Perceiver_channel(pl.LightningModule):
 
         b = max(batch) + 1
         latents = repeat(self.latents, "n d -> b n d", b=b)
-        #x = self.pre(x)
 
         x = self.perceiver(x, latents, batch)
 

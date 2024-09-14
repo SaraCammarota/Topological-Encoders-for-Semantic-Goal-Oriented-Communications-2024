@@ -8,4 +8,4 @@ num_trials: 20
 #pooling_ratios: [0.042, 0.083, 0.167, 0.8] 
 
 #pooling_ratios: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] 
-pooling_ratios: [0.1, 0.4, 0.6, 0.9]
+pooling_ratios: [0.1, 0.25, 0.5, 0.75]
