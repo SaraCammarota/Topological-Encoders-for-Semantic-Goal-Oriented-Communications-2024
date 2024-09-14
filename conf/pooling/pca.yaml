@@ -1,0 +1,4 @@
+
+pooling_type: 'pca'
+pooling_ratio: 0.8
+pca_dim: 5

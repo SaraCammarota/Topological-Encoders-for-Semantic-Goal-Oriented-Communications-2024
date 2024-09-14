@@ -111,8 +111,9 @@ def create_hyperparameters(config: DictConfig):
         "ratio": config.pooling.get('pooling_ratio', 0.5),
         "snr_db": config.my_model.channel.get('snr_db', 10),
         "skip_connection": config.my_model.get('skip_connection', False),
-        "receiver_layers": [config.my_model.layers.get('hsize', 64) for _ in range(config.my_model.layers.get('receiver', 64) )],
-        "noisy_training": config.training.get('noisy', False)
+        "receiver_layers": [num_features] + [config.my_model.layers.get('hsize', 64) for _ in range(config.my_model.layers.get('receiver', 64) )],
+        "noisy_training": config.training.get('noisy', False),
+        "pca_dim": config.pooling.get('pca_dim', None),
     }
 
     return hyperparams
@@ -147,7 +148,6 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     snr_values, pooling_ratios, pooling_name, data_name = config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type, config.dataset.loader.parameters.data_name
 
     for idx, ratio in enumerate(pooling_ratios):
-
         color = f'C{idx}'
         
         plt.errorbar(snr_values, smooth_validation_accuracies[idx], yerr=smooth_validation_std_devs[idx], 
@@ -160,34 +160,23 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     plt.ylabel('Validation Accuracy')
     plt.title(f'Accuracy vs. SNR on {data_name}, with {pooling_name} pooling')
 
-    handles = [
+    training_type_legend = [
         plt.Line2D([0], [0], color='black', linestyle='-', marker='o', label='Trained without Noise'),
         plt.Line2D([0], [0], color='black', linestyle='--', marker='x', label='Trained with Noise'),
     ]
+    training_type_legend_plt = plt.legend(handles=training_type_legend, loc='best', title='Training Type')
 
-    for idx, ratio in enumerate(pooling_ratios):
-        handles.append(plt.Line2D([0], [0], color=f'C{idx}', label=f'Pooling Ratio: {ratio}'))
+    compression_legend = plt.legend(title="Pooling Ratio", loc='best')
 
-
-    plt.legend(handles=handles, title='', fontsize=15, ncol=2)  
+    plt.gca().add_artist(training_type_legend_plt)
+    
     plt.grid(True)
 
     folder_path = f'new_plots/use_gcn_{config.my_model.use_gcn}/{data_name}/{pooling_name}'
     os.makedirs(folder_path, exist_ok=True)
 
-    plt.savefig(f'{folder_path}/clean_vs_noisy__MLP_new_legend.png')
+    plt.savefig(f'{folder_path}/prova.png')
     plt.show()
     plt.close()
 
 
-
-class DictObj:
-    def __init__(self, in_dict:dict):
-        assert isinstance(in_dict, dict)
-        for key, val in in_dict.items():
-            if isinstance(val, (list, tuple)):
-                setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
-            else:
-                setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
-
-                

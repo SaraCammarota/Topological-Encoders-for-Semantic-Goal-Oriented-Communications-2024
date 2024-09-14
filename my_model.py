@@ -20,17 +20,17 @@ class Model_channel(pl.LightningModule):
 
         self.save_hyperparameters(hparams)
         self.pre = MLP(hparams["pre_layers"], dropout = hparams["dropout"])
-        self.gnn = GNN(hparams["conv_layers"], dropout = hparams["dropout"])
+        self.gnn = GNN(hparams["conv_layers"][:-1] + [hparams["pre_layers"][0]], dropout = hparams["dropout"])
         self.pooling_type = hparams["pooling"]
         self.pooling_ratio = hparams["ratio"]
         if self.pooling_type == 'topk': 
-            self.pool = TopKPooling(in_channels = hparams["conv_layers"][-1], ratio = self.pooling_ratio) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
+            self.pool = TopKPooling(in_channels = hparams["pre_layers"][0], ratio = self.pooling_ratio) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
         elif self.pooling_type == 'edge':
-            self.pool = EdgePooling(in_channels = hparams["conv_layers"][-1])
+            self.pool = EdgePooling(in_channels = hparams["pre_layers"][0])
         elif self.pooling_type == 'sag': 
-            self.pool = SAGPooling(in_channels = hparams["conv_layers"][-1], ratio = self.pooling_ratio)      
+            self.pool = SAGPooling(in_channels = hparams["pre_layers"][0], ratio = self.pooling_ratio)      
         elif self.pooling_type == 'asa': 
-            self.pool = ASAPooling(in_channels = hparams["conv_layers"][-1], ratio = self.pooling_ratio)      
+            self.pool = ASAPooling(in_channels = hparams["pre_layers"][0], ratio = self.pooling_ratio)      
         
         self.noisy_training = hparams["noisy_training"]
         self.noise = NoiseBlock()
@@ -89,7 +89,7 @@ class Model_channel(pl.LightningModule):
         self.num_classes = hparams["num_classes"]
 
         if hparams["skip_connection"] == True: 
-            self.skip = torch.nn.Linear(hparams["pre_layers"][-1], hparams["conv_layers"][-1])
+            self.skip = torch.nn.Linear(hparams["pre_layers"][-1], hparams["pre_layers"][0])
         elif hparams["skip_connection"] == False: 
             self.skip = None
 

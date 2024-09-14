@@ -5,7 +5,7 @@ from torch_geometric.nn import GCNConv
 from utils import *
 import torch
 from sklearn.cluster import KMeans as SklearnKMeans
-
+from sklearn.decomposition import PCA as SKPCA
 
 class GNN(nn.Module):
     def __init__(self, layers_size, dropout=0.0, last_act=False):
@@ -298,23 +298,16 @@ class DGM_d(nn.Module):
 
 
 class KMeans(nn.Module):
-    def __init__(self, ratio, init='k-means++', max_iter=300, tol=1e-4, n_init = 10):
-        """
-        Initialize the KMeans clustering module.
-
-        Args:
-            ratio (float): Ratio to determine the number of clusters based on the number of nodes in each graph.
-            init (str): Method for initialization, defaults to 'k-means++'.
-            max_iter (int): Maximum number of iterations of the k-means algorithm for a single run.
-            tol (float): Relative tolerance with regards to inertia to declare convergence.
-        """
+    def __init__(self, ratio, init='k-means++', max_iter=300, tol=1e-4, n_init=10, pca_dim=None):
+        
         super(KMeans, self).__init__()
         self.ratio = ratio
         self.init = init
         self.max_iter = max_iter
         self.tol = tol
-        self.kmeans = None
         self.n_init = n_init
+        self.pca_dim = pca_dim  # Number of components for PCA, if None, PCA is skipped
+        self.kmeans = None
 
     def forward(self, X, batch):
         """
@@ -331,22 +324,24 @@ class KMeans(nn.Module):
         unique_graphs = batch.unique()
         centroids_list = []
         new_batch_list = []
-        
+
         with torch.no_grad():
             for graph_id in unique_graphs:
-                
                 graph_mask = batch == graph_id
                 X_graph = X[graph_mask]
 
                 X_graph_np = X_graph.cpu().numpy()
 
+                if self.pca_dim is not None and X_graph_np.shape[1] > self.pca_dim:
+                    pca = SKPCA(n_components=self.pca_dim)
+                    X_graph_np = pca.fit_transform(X_graph_np)
+
                 n_clusters = max(1, round(self.ratio * X_graph_np.shape[0]))  
-                
-                self.kmeans = SklearnKMeans(n_clusters=n_clusters, init=self.init, max_iter=self.max_iter, tol=self.tol, n_init = self.n_init)
+
+                self.kmeans = SklearnKMeans(n_clusters=n_clusters, init=self.init, max_iter=self.max_iter, tol=self.tol, n_init=self.n_init)
                 self.kmeans.fit(X_graph_np)
 
                 centroids_np = self.kmeans.cluster_centers_
-
                 centroids = torch.tensor(centroids_np, dtype=X.dtype, device=X.device)
 
                 centroids_list.append(centroids)
@@ -357,3 +352,43 @@ class KMeans(nn.Module):
         new_batch = torch.cat(new_batch_list, dim=0)
 
         return centroids, new_batch
+    
+
+
+class PCAReconstructor:
+    def __init__(self, q=5, niter=2):
+        self.q = q
+        self.niter = niter
+        
+        self.mean_ = None
+    
+    def decompose(self, A):
+        mean = A.mean(dim=1, keepdim=True)            
+        U, S, V = torch.pca_lowrank(A, q=self.q, center=True, niter=self.niter)
+        return U, S, V, mean
+
+    def reconstruct(self, U, S, V, mean):    
+        SV = torch.einsum('bq,bdq->bqd', S, V)
+        A_reconstructed = U @ SV
+
+        if self.center and mean is not None:
+            A_reconstructed += mean
+        return A_reconstructed
+
+    def compute_reconstruction_loss(self, A):
+        U, S, V, mean = self.decompose(A)    
+        A_reconstructed = self.reconstruct(U, S, V, mean)
+        loss = ((A - A_reconstructed) ** 2).sum()
+        return loss
+    
+    def project(self, A):
+        """Decompose A and project it to the principal components"""
+        torch.random.manual_seed(42)
+        U, S, V, A_mean = self.decompose(A)
+        A_projected = torch.einsum('bnd,bdi->bni', (A - A_mean), V)
+        return A_projected, V, A_mean
+    
+    def reconstruct_from_projection(self, A_projected, V, A_mean):
+        """Reconstruct A from the projected data"""
+        A_reconstructed = torch.einsum('bni,bdi->bnd', A_projected, V) + A_mean
+        return A_reconstructed
