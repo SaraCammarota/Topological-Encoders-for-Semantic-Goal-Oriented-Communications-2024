@@ -15,6 +15,7 @@ parameters:
   loss_type: cross_entropy
   monitor_metric: accuracy
   task_level: graph
+  avg_num_nodes: 39.1
 
 #splits
 split_params:

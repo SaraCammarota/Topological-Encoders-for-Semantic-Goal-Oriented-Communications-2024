@@ -1,0 +1,27 @@
+
+name: 'perceiver'
+
+metric:
+  name: train_loss
+  goal: minimize
+
+seed: 42
+data_seed: 0
+
+layers: 
+  hsize: 16
+  n_pre: 4
+  n_post: 2
+  receiver: 3
+
+
+dropout: 0.0
+
+
+channel:
+  noise: 'awgn'
+  snr_db: 13
+
+graph_loss_reg: 1
+poly_loss_reg: 1
+ensemble_steps: 1

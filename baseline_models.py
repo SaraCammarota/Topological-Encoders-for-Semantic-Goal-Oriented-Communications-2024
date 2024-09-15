@@ -359,7 +359,7 @@ class Perceiver_channel(pl.LightningModule):
             raise ValueError(f"Invalid number of classes ({hparams['num_classes']}).")
         
 
-        #self.receiver = MLP([self.pca_dim] + hparams['receiver_layers'][1:], dropout= hparams["dropout"])
+        self.receiver = MLP(hparams['receiver_layers'][1:], dropout= hparams["dropout"])
                                                 #num_latents        #latents_dim
         self.latents = nn.Parameter(torch.randn(compressed_dim, self.num_features, ))
 

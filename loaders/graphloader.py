@@ -95,11 +95,14 @@ HETEROPHILIC_DATASETS = [
     "tolokers",
 ]
 
+MNIST = ["MNISTSuperpixels"]
+
 PYG_DATASETS = (
     PLANETOID_DATASETS
     + TU_DATASETS
     + FIXED_SPLITS_DATASETS
     + HETEROPHILIC_DATASETS
+    + MNIST
 )
 
 
@@ -256,6 +259,12 @@ class GraphLoader(AbstractLoader):
             dataset.split_idx = split_idx
 
             data_dir = root_data_dir      
+
+        elif self.parameters.data_name in MNIST:
+            dataset = torch_geometric.datasets.MNISTSuperpixels(root="data/MNISTSuperpixels", train=False)
+                        #torch_geometric.datasets.MNISTSuperpixels(root="data/MNISTSuperpixels", train=False)] 
+
+
 
         elif self.parameters.data_name in HETEROPHILIC_DATASETS:
             dataset = torch_geometric.datasets.HeterophilousGraphDataset(

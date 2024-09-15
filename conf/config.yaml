@@ -1,5 +1,5 @@
 defaults:
-  - dataset: imdb_binary
+  - dataset: enzymes
   - my_model: model_config
   - dgm: no_dgm_conf
   - pooling: asa_conf
@@ -12,13 +12,13 @@ defaults:
 hydra:
   sweeper:
     params:
-      my_model.layers.n_pre: choice(2, 3)
-      my_model.layers.n_post: choice(2, 3)
-      my_model.layers.n_conv: choice(2, 3)
-      my_model.layers.n_dgm_layers: choice(2, 3)
-      my_model.layers.receiver: choice(2, 3)
+      # my_model.layers.n_pre: choice(3, 4)
+      # my_model.layers.n_post: choice(3, 4)
+      # my_model.layers.n_conv: choice(4, 5)
+      # my_model.layers.n_dgm_layers: choice(3, 4)
+      
       #my_model.dropout: choice(0.1, 0.2)         
-      #training.lr: choice(0.001, 0.0005)   
+      training.lr: choice(0.1, 0.001, 0.0001, 0.00001)   
 
 
 # best configs with top-5 dgm:

@@ -70,7 +70,7 @@ class Model_channel(pl.LightningModule):
 
         self.dgm_name = hparams["dgm_name"]
 
-        self.post = MLP(hparams["post_layers"], dropout = hparams["dropout"])
+        self.post = MLP(hparams["post_layers"], dropout = hparams["dropout"])   
 
         self.avg_accuracy = None
 
@@ -93,7 +93,7 @@ class Model_channel(pl.LightningModule):
         elif hparams["skip_connection"] == False: 
             self.skip = None
 
-        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])
+        self.receiver = GNN(hparams['receiver_layers'], dropout= hparams["dropout"])    # TODO MLP or GNN?
 
     def forward(self, data):
         '''
@@ -157,7 +157,7 @@ class Model_channel(pl.LightningModule):
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
         
-        x = self.post(x)
+        x = self.post(x, edges)
 
         return x, edges, ne_probs
 
@@ -179,7 +179,7 @@ class Model_channel(pl.LightningModule):
         pred, _, _ = self(batch)
         train_lab = batch.y
 
-        tr_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(train_lab, num_classes = self.num_classes).float())
+        tr_loss = F.cross_entropy(pred, train_lab)
 
         if torch.isnan(tr_loss).any() or torch.isnan(pred).any():
             print(f"NaN detected in training data or loss at batch {batch_idx}")
@@ -187,7 +187,7 @@ class Model_channel(pl.LightningModule):
         batch_size = batch.batch_0.max().item() + 1  
         self.log("train_acc", self.train_acc(pred.softmax(-1).argmax(-1), train_lab), on_step=False, on_epoch=True, prog_bar = True, batch_size = batch_size)
         self.log("train_loss", tr_loss, on_step=False, on_epoch=True, prog_bar = True, batch_size = batch_size)
-        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
+        #torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
 
         return tr_loss
 
@@ -198,7 +198,7 @@ class Model_channel(pl.LightningModule):
 
         #pred = pred[batch.val_mask].float()
         
-        val_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(val_lab, num_classes = self.num_classes).float())
+        val_loss = F.cross_entropy(pred, val_lab)
         
         # Check for NaN values in the loss or predictions
         if torch.isnan(val_loss).any() or torch.isnan(pred).any():
