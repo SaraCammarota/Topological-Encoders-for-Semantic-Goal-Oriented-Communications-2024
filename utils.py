@@ -179,11 +179,11 @@ def plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs,
     
     plt.grid(True)
 
-    folder_path = f'new_plots/use_gcn_{config.my_model.use_gcn}/{data_name}/{pooling_name}/{config.dgm.name}'
-    #folder_path = f'perceiver/{data_name}/{pooling_name}'
+    #folder_path = f'new_plots/use_gcn_{config.my_model.use_gcn}/{data_name}/{pooling_name}/{config.dgm.name}'
+    folder_path = f'perceiver/{data_name}'
     os.makedirs(folder_path, exist_ok=True)
 
-    plt.savefig(f'{folder_path}.png')
+    plt.savefig(f'{folder_path}/noisy_vs_smooth.png')
     plt.show()
     plt.close()
 

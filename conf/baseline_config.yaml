@@ -1,6 +1,6 @@
 defaults: 
   - _self_
-  - dataset: enzymes
+  - dataset: imdb_binary
   - my_model: perceiver
   - dgm: no_dgm_conf   #dummy
   - pooling: perceiver

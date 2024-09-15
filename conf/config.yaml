@@ -1,8 +1,8 @@
 defaults:
-  - dataset: enzymes
+  - dataset: imdb_binary
   - my_model: model_config
   - dgm: no_dgm_conf
-  - pooling: asa_conf
+  - pooling: topk_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default

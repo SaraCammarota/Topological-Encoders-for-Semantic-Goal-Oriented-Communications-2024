@@ -261,7 +261,7 @@ class GraphLoader(AbstractLoader):
             data_dir = root_data_dir      
 
         elif self.parameters.data_name in MNIST:
-            dataset = torch_geometric.datasets.MNISTSuperpixels(root="data/MNISTSuperpixels", train=False)
+            dataset = torch_geometric.datasets.MNISTSuperpixels(root="data/MNISTSuperpixels", train=True)
                         #torch_geometric.datasets.MNISTSuperpixels(root="data/MNISTSuperpixels", train=False)] 
 
 
