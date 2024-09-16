@@ -1,7 +1,7 @@
 defaults:
-  - dataset: imdb_binary
+  - dataset: mutag
   - my_model: model_config
-  - dgm: no_dgm_conf
+  - dgm: topk_dgm_conf
   - pooling: topk_conf
   - training: train_conf
   - exp: snr_conf

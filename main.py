@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 from loaders import *
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel
+from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="baseline_config")
+@hydra.main(version_base=None, config_path="conf", config_name="config")
 
 # we can do a "test" with IMDB-BINARY where the avg number of nodes per graph is 19.8 --> if we compress 50%, latent dimension is 10.
 
@@ -59,24 +59,32 @@ def setup_training(config):
     )
 
 
-    # wandb_logger = WandbLogger(project='baseline_perceiver')
+    wandb_logger = WandbLogger(project='mutag_perceiver')
     # wandb_logger = WandbLogger(project='mine_vs_baseline_PROTEINS_nodgm')
     hparams = create_hyperparameters(config)
-    # wandb_logger.log_hyperparams(hparams)
+    wandb_logger.log_hyperparams(hparams)
 
     if config.my_model.name == 'dgm_channel':
         channel = Model_channel(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback])#, logger=wandb_logger, log_every_n_steps=2)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
         trainer.fit(channel, datamodule)
         best_model_path = checkpoint_callback.best_model_path
         best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
 
     elif config.my_model.name == 'perceiver': 
         channel = Perceiver_channel(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback])#, logger=wandb_logger, log_every_n_steps=2)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
         trainer.fit(channel, datamodule)
         best_model_path = checkpoint_callback.best_model_path
         best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    elif config.my_model.name == 'mlp_bottleneck': 
+        channel = MLP_Bottleneck(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
+
 
     else:
         print('Model not implemented. Check config file')
@@ -175,6 +183,7 @@ def train_and_plot_same(config: DictConfig):
     plot_results_same(noisy_validation_accuracies, noisy_validation_std_devs, smooth_validation_accuracies, smooth_validation_std_devs, config)
 
 
+from matplotlib.lines import Line2D
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def train_and_plot_comparison(config: DictConfig):
@@ -189,7 +198,7 @@ def train_and_plot_comparison(config: DictConfig):
         config.pooling.pooling_ratio = ratio
 
         # Test Perceiver model
-        config.my_model.name = 'perceiver'
+        config.my_model.name = 'mlp_bottleneck'
         trainer_perceiver, perceiver_model, datamodule = setup_training(config)
 
         perceiver_snr_accuracies = []
@@ -233,7 +242,7 @@ def train_and_plot_comparison(config: DictConfig):
     # Now plot the results for both Perceiver and my_model (Model_channel)
     plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracies, my_model_std_devs, 
                     config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type, 
-                    config.dataset.loader.parameters.data_name, "Perceiver vs My Model")
+                    config.dataset.loader.parameters.data_name, "Simple MLP Bottleneck vs DGM and Graph Pooling")
 
 
 def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracies, my_model_std_devs, 
@@ -242,39 +251,35 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
     plt.figure(figsize=(10, 6))
     
     # Define line styles and markers
-    perceiver_style = '-o'  # Solid line with circles
-    my_model_style = '-x'   # Solid line with crosses
+    perceiver_style = 'o'  
+    my_model_style = 'x'   
 
-    # Colors for each pooling ratio
-    colors = plt.cm.viridis(np.linspace(0, 1, len(pooling_ratios)))  # Use a colormap to assign a color for each ratio
 
     # Plot Perceiver and My Model (DGM and Graph Pooling) with the same color for each pooling ratio
     for i, ratio in enumerate(pooling_ratios):
-        color = colors[i]  # Same color for both Perceiver and My Model for the same ratio
+        color = f'C{i}'  # Same color for both Perceiver and My Model for the same ratio
 
         # Plot Perceiver results
-        plt.errorbar(snr_vals, perceiver_accuracies[i], yerr=perceiver_std_devs[i], label=f'Perceiver - Pooling Ratio: {ratio}',
-                     fmt=perceiver_style, color=color)
+        plt.errorbar(snr_vals, perceiver_accuracies[i], yerr=perceiver_std_devs[i], label=f'MLP Bottleneck - Pooling Ratio: {ratio}',
+                     fmt=perceiver_style, linestyle = '-.' , color=color)
 
         # Plot My Model (DGM and Graph Pooling) results
         plt.errorbar(snr_vals, my_model_accuracies[i], yerr=my_model_std_devs[i], label=f'DGM and Graph Pooling - Pooling Ratio: {ratio}',
-                     fmt=my_model_style, color=color)
+                     fmt=my_model_style, linestyle = '-', color=color)
 
     # Set plot title and labels
-    plt.title(f'{title} on {data_name} Dataset')
+    plt.title(f'{title} {pooling_type} on {data_name} Dataset')
     plt.xlabel('SNR (dB)')
     plt.ylabel('Validation Accuracy')
     plt.grid(True)
 
     # Custom legend with two columns: color for pooling ratio, line style for model type
-    from matplotlib.lines import Line2D
-
     # Create legend elements for pooling ratios (colors) and models (line styles)
-    legend_elements_color = [Line2D([0], [0], color=colors[i], lw=2, label=f'Pooling Ratio: {pooling_ratios[i]}') 
+    legend_elements_color = [Line2D([0], [0], color=f'C{i}', lw=2, label=f'Pooling Ratio: {pooling_ratios[i]}') 
                              for i in range(len(pooling_ratios))]
 
-    legend_elements_style = [Line2D([0], [0], color='black', lw=2, label='Perceiver', marker='o'),
-                             Line2D([0], [0], color='black', lw=2, label='DGM and Graph Pooling', marker='x')]
+    legend_elements_style = [Line2D([0], [0], color='black', lw=2, label='MLP Bottleneck', marker='o', ls='-.'),
+                             Line2D([0], [0], color='black', lw=2, label='DGM and Graph Pooling', marker='x', ls='-')]
 
     # Create two-column legend
     first_legend = plt.legend(handles=legend_elements_color, loc='upper left', bbox_to_anchor=(1, 1), title='Pooling Ratios')
@@ -288,34 +293,12 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
 
     # Show the plot
     plt.grid(True)
-    folder_path = f'baseline_vs_ours/{pooling_type}/{data_name}'
+    folder_path = f'mlp_bottleneck_vs_ours/{pooling_type}/{data_name}'
     os.makedirs(folder_path, exist_ok=True)
-    plt.savefig(f'{folder_path}/noisy_vs_smooth.png')
+    plt.savefig(f'{folder_path}/topk_dgm_NO_NOISE.png')
     plt.tight_layout()
     plt.show()
 
-
-# def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracies, my_model_std_devs, snr_vals, pooling_ratios, pooling_type, data_name, title):
-#     plt.figure(figsize=(10, 6))
-    
-#     # Plot Perceiver results
-#     for i, ratio in enumerate(pooling_ratios):
-#         plt.errorbar(snr_vals, perceiver_accuracies[i], yerr=perceiver_std_devs[i], label=f'Perceiver - Pooling Ratio: {ratio}', fmt='-o')
-
-#     # Plot my_model results
-#     for i, ratio in enumerate(pooling_ratios):
-#         plt.errorbar(snr_vals, my_model_accuracies[i], yerr=my_model_std_devs[i], label=f'My Model - Pooling Ratio: {ratio}', fmt='-x')
-
-#     plt.title(f'{title} on {data_name} Dataset')
-#     plt.xlabel('SNR (dB)')
-#     plt.ylabel('Validation Accuracy')
-#     plt.legend()
-#     plt.grid(True)
-#     folder_path = f'baseline_vs_ours/{pooling_type}/{data_name}'
-#     os.makedirs(folder_path, exist_ok=True)
-#     plt.savefig(f'{folder_path}/noisy_vs_smooth.png')
-#     plt.tight_layout()
-#     plt.show()
 
 
 

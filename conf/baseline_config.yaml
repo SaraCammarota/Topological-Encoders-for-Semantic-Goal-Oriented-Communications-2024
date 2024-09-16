@@ -1,7 +1,7 @@
 defaults: 
   - _self_
-  - dataset: imdb_binary
-  - my_model: perceiver
+  - dataset: mutag
+  - my_model: mlp_bottleneck
   - dgm: no_dgm_conf   #dummy
   - pooling: perceiver
   - training: train_conf
