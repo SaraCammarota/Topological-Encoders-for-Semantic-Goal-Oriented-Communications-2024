@@ -295,7 +295,7 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
     plt.grid(True)
     folder_path = f'mlp_bottleneck_vs_ours/{pooling_type}/{data_name}'
     os.makedirs(folder_path, exist_ok=True)
-    plt.savefig(f'{folder_path}/topk_dgm_NO_NOISE.png')
+    plt.savefig(f'{folder_path}/topk_dgm.png')
     plt.tight_layout()
     plt.show()
 
