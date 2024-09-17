@@ -85,6 +85,13 @@ def setup_training(config):
         best_model_path = checkpoint_callback.best_model_path
         best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
 
+    # elif config.my_model.name == 'Knn_channel': 
+    #     channel = Knn_channel(hparams)
+    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
+    #     trainer.fit(channel, datamodule)
+    #     best_model_path = checkpoint_callback.best_model_path
+    #     best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
 
     else:
         print('Model not implemented. Check config file')
@@ -305,6 +312,6 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
 if __name__ == "__main__":
 
     #train_and_plot()
-    #setup_training()
-    train_and_plot_comparison()
+    setup_training()
+    #train_and_plot_comparison()
 

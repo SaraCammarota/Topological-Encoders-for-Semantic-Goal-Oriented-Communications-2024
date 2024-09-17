@@ -1,9 +1,9 @@
 defaults: 
   - _self_
   - dataset: mutag
-  - my_model: perceiver
+  - my_model: Knn_channel
   - dgm: no_dgm_conf   #dummy
-  - pooling: perceiver
+  - pooling: sag_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default

@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torchmetrics import Accuracy
 from torch_geometric.nn import global_mean_pool
 import pytorch_lightning as pl
-from layers import MLP, GNN, DGM, NoiseBlock, DGM_d
+from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, DGM_c
 from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 import hydra
 from omegaconf import DictConfig
@@ -52,13 +52,13 @@ class Model_channel(pl.LightningModule):
             )
 
         elif hparams["use_gcn"] and (hparams["dgm_name"] == 'topk_dgm'):
-            self.graph_f = DGM_d(
+            self.graph_f = DGM_c(
                 GNN(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 k=hparams["k"],
                 distance=hparams["distance"],
             )
         elif (not hparams["use_gcn"]) and (hparams["dgm_name"] == 'topk_dgm') :
-            self.graph_f = DGM_d(
+            self.graph_f = DGM_c(
                 MLP(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 k=hparams["k"],
                 distance=hparams["distance"],
@@ -93,7 +93,7 @@ class Model_channel(pl.LightningModule):
         elif hparams["skip_connection"] == False: 
             self.skip = None
 
-        self.receiver = GNN(hparams['receiver_layers'], dropout= hparams["dropout"])    # TODO MLP or GNN?
+        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])    # TODO MLP or GNN?
 
     def forward(self, data):
         '''
@@ -109,7 +109,7 @@ class Model_channel(pl.LightningModule):
         if self.dgm_name == 'alpha_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
         elif self.dgm_name == 'topk_dgm':
-            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch) 
+            x_aux, edges, edge_weights = self.graph_f(x, data["edge_index"], batch) 
         elif self.dgm_name == 'no_dgm': 
             # x_aux = self.graph_f(x, data["edge_index"]) 
             edges = data["edge_index"]
@@ -119,7 +119,7 @@ class Model_channel(pl.LightningModule):
             skip = self.skip(x)
 
         # FEATURE EXTRACTION
-        x = self.gnn(x, edges)
+        x = self.gnn(x, edges, edge_weights)
 
         # Here one might add a skip connection 
         if self.skip is not None: 
@@ -159,7 +159,7 @@ class Model_channel(pl.LightningModule):
         
         x = self.post(x, edges)
 
-        return x, edges, ne_probs
+        return x, edges#, ne_probs
 
     def configure_optimizers(self):
         if self.hparams["optimizer"] == "adam":
@@ -176,7 +176,7 @@ class Model_channel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
        
-        pred, _, _ = self(batch)
+        pred, _ = self(batch)
         train_lab = batch.y
 
         tr_loss = F.cross_entropy(pred, train_lab)
@@ -193,7 +193,7 @@ class Model_channel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
 
-        pred, _, _ = self(batch)
+        pred, _ = self(batch)
         val_lab = batch.y
 
         #pred = pred[batch.val_mask].float()
@@ -219,7 +219,7 @@ class Model_channel(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         test_lab = batch.y
-        pred, _, _ = self(batch)
+        pred, _ = self(batch)
 
 
         for _ in range(1, self.hparams.ensemble_steps):
