@@ -104,23 +104,30 @@ class Model_channel(pl.LightningModule):
         batch = data.batch_0
         ptr = data.ptr
         x = self.pre(x)
+        
+        if self.skip is not None: 
+            skip = self.skip(x)
+
         # LTI
 
         if self.dgm_name == 'alpha_dgm':
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
+            x = self.gnn(x, edges)
+
         elif self.dgm_name == 'topk_dgm':
+
             x_aux, edges, edge_weights = self.graph_f(x, data["edge_index"], batch) 
+            x = self.gnn(x, edges, edge_weights)
             
         elif self.dgm_name == 'no_dgm': 
             # x_aux = self.graph_f(x, data["edge_index"]) 
             edges = data["edge_index"]
             ne_probs = None
+            x = self.gnn(x, edges)
 
-        if self.skip is not None: 
-            skip = self.skip(x)
 
-        # FEATURE EXTRACTION
-        x = self.gnn(x, edges, edge_weights)
+        # # FEATURE EXTRACTION -- moved above
+        # x = self.gnn(x, edges, edge_weights)
 
         # Here one might add a skip connection 
         if self.skip is not None: 

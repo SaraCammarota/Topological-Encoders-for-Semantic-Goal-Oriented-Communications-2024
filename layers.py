@@ -6,8 +6,7 @@ from utils import *
 import torch
 from sklearn.cluster import KMeans as SklearnKMeans
 from sklearn.decomposition import PCA as SKPCA
-from torch_geometric.utils import dense_to_sparse, to_dense_adj
-from torch_scatter import scatter_mean
+from torch_geometric.utils import dense_to_sparse
 
 class GNN(nn.Module):
     def __init__(self, layers_size, dropout=0.0, last_act=False):

@@ -59,28 +59,28 @@ def setup_training(config):
     )
 
 
-    wandb_logger = WandbLogger(project='mutag_perceiver')
+    #wandb_logger = WandbLogger(project='imdb_new_dgm')
     # wandb_logger = WandbLogger(project='mine_vs_baseline_PROTEINS_nodgm')
     hparams = create_hyperparameters(config)
-    wandb_logger.log_hyperparams(hparams)
+    #wandb_logger.log_hyperparams(hparams)
 
     if config.my_model.name == 'dgm_channel':
         channel = Model_channel(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
         trainer.fit(channel, datamodule)
         best_model_path = checkpoint_callback.best_model_path
         best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
 
     elif config.my_model.name == 'perceiver': 
         channel = Perceiver_channel(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
         trainer.fit(channel, datamodule)
         best_model_path = checkpoint_callback.best_model_path
         best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
 
     elif config.my_model.name == 'mlp_bottleneck': 
         channel = MLP_Bottleneck(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
         trainer.fit(channel, datamodule)
         best_model_path = checkpoint_callback.best_model_path
         best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
@@ -204,8 +204,8 @@ def train_and_plot_comparison(config: DictConfig):
     for ratio in config.exp.pooling_ratios:
         config.pooling.pooling_ratio = ratio
 
-        # Test Perceiver model
-        config.my_model.name = 'mlp_bottleneck'
+        # Test baseline model
+        config.my_model.name = 'perceiver'
         trainer_perceiver, perceiver_model, datamodule = setup_training(config)
 
         perceiver_snr_accuracies = []
@@ -249,7 +249,7 @@ def train_and_plot_comparison(config: DictConfig):
     # Now plot the results for both Perceiver and my_model (Model_channel)
     plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracies, my_model_std_devs, 
                     config.exp.test_snr_val, config.exp.pooling_ratios, config.pooling.pooling_type, 
-                    config.dataset.loader.parameters.data_name, "Simple MLP Bottleneck vs DGM and Graph Pooling")
+                    config.dataset.loader.parameters.data_name, "Perceiver vs DGM and Graph Pooling")
 
 
 def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracies, my_model_std_devs, 
@@ -282,7 +282,7 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
 
     # Custom legend with two columns: color for pooling ratio, line style for model type
     # Create legend elements for pooling ratios (colors) and models (line styles)
-    legend_elements_color = [Line2D([0], [0], color=f'C{i}', lw=2, label=f'Pooling Ratio: {pooling_ratios[i]}') 
+    legend_elements_color = [Line2D([0], [0], color=f'C{i}', lw=2, label=f'{pooling_ratios[i]}') 
                              for i in range(len(pooling_ratios))]
 
     legend_elements_style = [Line2D([0], [0], color='black', lw=2, label='MLP Bottleneck', marker='o', ls='-.'),
@@ -300,11 +300,130 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
 
     # Show the plot
     plt.grid(True)
-    folder_path = f'mlp_bottleneck_vs_ours/{pooling_type}/{data_name}'
+    folder_path = f'perceiver_vs_ours/{pooling_type}/{data_name}'
     os.makedirs(folder_path, exist_ok=True)
     plt.savefig(f'{folder_path}/topk_dgm.png')
     plt.tight_layout()
     plt.show()
+
+
+# for fixed SNR in validation, compare the different pooling methods
+
+def compare_poolings(config: DictConfig, snr):
+
+    config.my_model.channel.snr_db = snr
+
+    results = {}
+
+    for pool_method in config.exp.pool_methods: 
+
+        config.pooling.pooling_type = pool_method
+
+        method_accuracies = []
+        method_std = []
+
+
+        for pool_ratio in config.exp.pooling_ratios:
+
+            config.pooling.pooling_ratio = pool_ratio
+
+            trainer, model, datamodule = setup_training(config)
+
+            trial_accuracies = []
+
+
+            for _ in range(config.exp.num_trials):
+
+                test_result = trainer.validate(model, datamodule)
+                trial_accuracies.append(test_result[0]['val_acc'])
+
+            method_accuracies.append(np.mean(trial_accuracies))
+            method_std.append(np.std(trial_accuracies))
+
+        results[pool_method] = {
+            "accuracies": method_accuracies,
+            "std": method_std
+        }
+
+    plot_results(results, config.exp.pooling_ratios, config)
+
+
+def plot_results(results, pooling_ratios, config):
+
+    plt.figure(figsize=(10, 6))
+
+    # Iterate over each pooling method and plot the accuracies
+    for pool_method, results in results.items():
+        accuracies = results["accuracies"]
+        std_dev = results["std"]
+        
+        # Plot with error bars (optional)
+        plt.errorbar(pooling_ratios, accuracies, yerr=std_dev, label=f"{pool_method.upper()}", capsize=5, marker='o')
+
+    # Customize plot
+    plt.title(f"Accuracy vs Pooling Ratio for Different Pooling Methods. Trained with noise on {config.dataset.loader.parameters.data_name}")
+    plt.xlabel("Pooling Ratio")
+    plt.ylabel("Accuracy")
+    plt.legend(title="Pooling Methods")
+    plt.grid(True)
+    plt.tight_layout()
+
+
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def compare_poolings_over_snr(config: DictConfig):
+    save_dir = "compare_poolings"  # Directory to save plots
+    os.makedirs(save_dir, exist_ok=True)  # Ensure the directory exists
+
+    # Loop over each SNR value
+    for snr_value in config.exp.snr_values:
+        # Set the SNR value in the config
+        
+        print(f"Running experiment with SNR: {snr_value} dB")
+
+        # Call the existing compare_poolings function for this SNR value
+        compare_poolings(config, snr_value)  # No need for return
+
+        # Save the plot after each compare_poolings call
+        filename = os.path.join(save_dir, f"accuracy_vs_pooling_snr_{snr_value}.png")
+        
+        # Save the current plot
+        plt.savefig(filename)
+        plt.close()  # Close the plot to avoid overlap in subsequent plots
+
+        print(f"Plot saved to {filename}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -312,6 +431,7 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
 if __name__ == "__main__":
 
     #train_and_plot()
-    setup_training()
+    #setup_training()
     #train_and_plot_comparison()
+    compare_poolings_over_snr()
 
