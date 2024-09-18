@@ -109,7 +109,7 @@ def create_hyperparameters(config: DictConfig):
         "optimizer": config.training.get('optimizer', 'adam'),
         "pooling": config.pooling.get('pooling_type', 'default_pooling'),
         "ratio": config.pooling.get('pooling_ratio', 0.5),
-        "snr_db": config.my_model.channel.get('snr_db', 10),
+        "snr_db": config.my_model.channel.get('snr_db', None),
         "skip_connection": config.my_model.get('skip_connection', False),
         "receiver_layers": [num_features] + [config.my_model.layers.get('hsize', 64) for _ in range(config.my_model.layers.get('receiver', 64) )],
         "noisy_training": config.training.get('noisy', False),

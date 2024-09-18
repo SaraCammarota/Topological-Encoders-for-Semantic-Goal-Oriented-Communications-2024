@@ -24,18 +24,18 @@ class Model_channel(pl.LightningModule):
         self.pooling_type = hparams["pooling"]
         self.pooling_ratio = hparams["ratio"]
         if self.pooling_type == 'topk': 
-            self.pool = TopKPooling(in_channels = hparams["pre_layers"][0], ratio = self.pooling_ratio) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
+            self.pool = TopKPooling(in_channels = hparams["pre_layers"][0], ratio = float(self.pooling_ratio)) #min_score = hparams["topk_minscore"])  #ratio arg will be ignored if min score is not none
         elif self.pooling_type == 'edge':
             self.pool = EdgePooling(in_channels = hparams["pre_layers"][0])
         elif self.pooling_type == 'sag': 
-            self.pool = SAGPooling(in_channels = hparams["pre_layers"][0], ratio = self.pooling_ratio)      
+            self.pool = SAGPooling(in_channels = hparams["pre_layers"][0], ratio = float(self.pooling_ratio))      
         elif self.pooling_type == 'asa': 
-            self.pool = ASAPooling(in_channels = hparams["pre_layers"][0], ratio = self.pooling_ratio)      
+            self.pool = ASAPooling(in_channels = hparams["pre_layers"][0], ratio = float(self.pooling_ratio))      
         
         self.noisy_training = hparams["noisy_training"]
         self.noise = NoiseBlock()
-        #self.snr_db = hparams["snr_db"]
-        self.snr_db = None    # in this way, a different snr value is sampled at every forward pass
+        self.snr_db = hparams["snr_db"]
+
 
         if hparams["use_gcn"] and (hparams["dgm_name"] == 'alpha_dgm'):
             self.graph_f = DGM(
@@ -93,7 +93,7 @@ class Model_channel(pl.LightningModule):
         elif hparams["skip_connection"] == False: 
             self.skip = None
 
-        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])    # TODO MLP or GNN?
+        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])    
 
     def forward(self, data):
         '''
