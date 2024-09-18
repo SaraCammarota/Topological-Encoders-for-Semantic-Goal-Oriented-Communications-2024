@@ -298,105 +298,103 @@ class DGM_d(nn.Module):
 
 
 
-# class DGM_c(nn.Module):
-    
-#     input_dim = 32
-
-#     def __init__(self, embed_f, k=None, distance="euclidean"):
-#         super(DGM_c, self).__init__()
-#         self.temperature = nn.Parameter(torch.tensor(1).float())
-#         self.threshold = nn.Parameter(torch.tensor(0.5).float())
-#         self.embed_f = embed_f
-#         self.centroid=None
-#         self.scale=None
-#         self.distance = distance
-        
-#         self.scale = nn.Parameter(torch.tensor(-1).float(),requires_grad=False)
-#         self.centroid = nn.Parameter(torch.zeros((1,1,DGM_c.input_dim)).float(),requires_grad=False)
-        
-        
-#     def forward(self, x, A, not_used=None, fixedges=None):
-        
-#         x = self.embed_f(x,A)  
-        
-#         # estimate normalization parameters
-#         if self.scale <0:            
-#             self.centroid.data = x.mean(-2,keepdim=True).detach()
-#             self.scale.data = (0.9/(x-self.centroid).abs().max()).detach()
-        
-#         if self.distance=="hyperbolic":
-#             D, _x = pairwise_poincare_distances((x-self.centroid)*self.scale)
-#         else:
-#             D, _x = pairwise_euclidean_distances((x-self.centroid)*self.scale)
-            
-#         A = torch.sigmoid(self.temperature*(self.threshold.abs()-D))
-
-#         edge_index, edge_weight = dense_to_sparse(A)
-        
-
-# #         self.A=A
-# #         A = A/A.sum(-1,keepdim=True)
-#         return x, edge_index, edge_weight
-
-
-
 class DGM_c(nn.Module):
     
-    input_dim = 32  # Input feature dimensionality
+    input_dim = 32
 
     def __init__(self, embed_f, k=None, distance="euclidean"):
         super(DGM_c, self).__init__()
         self.temperature = nn.Parameter(torch.tensor(1).float())
         self.threshold = nn.Parameter(torch.tensor(0.5).float())
         self.embed_f = embed_f
+        self.centroid=None
+        self.scale=None
         self.distance = distance
         
-        # Scale and centroid will be computed for each graph in the batch separately
-        self.scale = nn.Parameter(torch.tensor(-1).float(), requires_grad=False)
-        self.centroid = None
-
-    def forward(self, x, edge_index, batch):
-        # `x`: Node features of shape [num_nodes, feature_dim]
-        # `edge_index`: Edge indices of shape [2, num_edges]
-        # `batch`: Batch vector indicating which graph each node belongs to
-
-        # Apply embedding function to input features and edge_index
-        x = self.embed_f(x, edge_index)
+        self.scale = nn.Parameter(torch.tensor(-1).float(),requires_grad=False)
+        self.centroid = nn.Parameter(torch.zeros((1,DGM_c.input_dim)).float(),requires_grad=True)
         
-        # Get number of graphs in the batch
-        num_graphs = batch.max().item() + 1
         
-        # Estimate centroid and scale for each graph separately
-        if self.scale < 0:
-            # Compute the centroids for each graph in the batch
-            self.centroid = scatter_mean(x, batch, dim=0, dim_size=num_graphs).unsqueeze(1)
-            # Broadcast centroids to all nodes
-            x_centroided = x - self.centroid[batch]  # Subtract centroid from each node's features
-            self.scale.data = (0.9 / (x_centroided.abs().max())).detach()
+    def forward(self, x, A, not_used=None, fixedges=None):
+        
+        x = self.embed_f(x,A)  
+        
+        # estimate normalization parameters
+        if self.scale <0:            
+            self.centroid.data = x.mean(-2,keepdim=True).detach()
+            self.scale.data = (0.9/(x-self.centroid).abs().max()).detach()
+            #print(f"Centroid shape: {self.centroid.shape}")
+
+        x_centered = x - self.centroid
+        #print(f"x_centered shape: {x_centered.shape}")
+        
+        if self.distance=="hyperbolic":
+            D, _x = pairwise_poincare_distances((x-self.centroid)*self.scale)
         else:
-            x_centroided = x - self.centroid[batch]  # Reuse the precomputed centroids
+            D, _x = pairwise_euclidean_distances(x_centered*self.scale)
+            
+        A = torch.sigmoid(self.temperature*(self.threshold.abs()-D))
 
-        # Scale node features after subtracting centroid
-        x_scaled = x_centroided * self.scale
-
-        # Compute pairwise distances between nodes for each graph
-        if self.distance == "hyperbolic":
-            D, _x = pairwise_poincare_distances(x_scaled)
-        else:
-            D, _x = pairwise_euclidean_distances(x_scaled)
-
-        # Convert distance matrix D to adjacency matrix with sigmoid
-        A = torch.sigmoid(self.temperature * (self.threshold.abs() - D))
-
-        # Convert dense adjacency matrix to edge_index and edge_weight
         edge_index, edge_weight = dense_to_sparse(A)
-        print("A shape:", A.shape)
-        print("edge_index shape:", edge_index.shape)
-        print("edge_weight shape:", edge_weight.shape)
+        
 
+#         self.A=A
+#         A = A/A.sum(-1,keepdim=True)
         return x, edge_index, edge_weight
 
 
+
+class DGM_c_batch(nn.Module):
+    
+    def __init__(self, dgm_c: DGM_c):
+        super(DGM_c_batch, self).__init__()
+        self.dgm_c = dgm_c  # DGM_c for one graph
+
+    def forward(self, x, edge_index, batch):
+        """
+        Forward pass for batched graphs.
+        x: Node features [num_nodes, feature_dim]
+        edge_index: Edge index [2, num_edges]
+        batch: Batch tensor that indicates which graph each node belongs to
+        """
+        num_nodes = x.size(0)  # Total number of nodes
+        num_graphs = batch.max().item() + 1  # Number of graphs in the batch
+        
+        # Split the batch into individual graphs
+        x_list = []
+        edge_index_list = []
+        edge_weight_list = []
+        node_offset = 0
+        
+        for graph_id in range(num_graphs):
+            # Select the nodes and edges that belong to the current graph
+            graph_mask = (batch == graph_id)
+            x_graph = x[graph_mask]  # Features of nodes in this graph
+            
+            # Get the edges for the current graph
+            edge_mask = (batch[edge_index[0]] == graph_id) & (batch[edge_index[1]] == graph_id)
+            edge_index_graph = edge_index[:, edge_mask] - node_offset  # Adjust edge indices for local nodes
+
+            # Apply DGM_c for the current graph
+            x_graph, edge_index_graph, edge_weight_graph = self.dgm_c(x_graph, edge_index_graph)
+
+            # Adjust edge indices to the global batch space
+            edge_index_graph = edge_index_graph + node_offset
+            
+            # Append results
+            x_list.append(x_graph)
+            edge_index_list.append(edge_index_graph)
+            edge_weight_list.append(edge_weight_graph)
+
+            # Update node offset for the next graph
+            node_offset += graph_mask.sum().item()
+
+        # Concatenate results from all graphs
+        x_batch = torch.cat(x_list, dim=0)
+        edge_index_batch = torch.cat(edge_index_list, dim=1)
+        edge_weight_batch = torch.cat(edge_weight_list, dim=0)
+
+        return x_batch, edge_index_batch, edge_weight_batch
 
 
 class KMeans(nn.Module):

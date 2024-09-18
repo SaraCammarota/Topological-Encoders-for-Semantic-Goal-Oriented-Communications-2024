@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torchmetrics import Accuracy
 from torch_geometric.nn import global_mean_pool
 import pytorch_lightning as pl
-from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, DGM_c
+from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, DGM_c, DGM_c_batch
 from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 import hydra
 from omegaconf import DictConfig
@@ -52,18 +52,18 @@ class Model_channel(pl.LightningModule):
             )
 
         elif hparams["use_gcn"] and (hparams["dgm_name"] == 'topk_dgm'):
-            self.graph_f = DGM_c(
+            self.graph_f = DGM_c_batch(DGM_c(
                 GNN(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 k=hparams["k"],
                 distance=hparams["distance"],
-            )
+            ))
         elif (not hparams["use_gcn"]) and (hparams["dgm_name"] == 'topk_dgm') :
-            self.graph_f = DGM_c(
+            self.graph_f = DGM_c_batch(DGM_c(
                 MLP(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 k=hparams["k"],
                 distance=hparams["distance"],
 
-            )
+            ))
 
         # elif hparams["dgm_name"] == 'no_dgm':
         #     self.graph_f = GNN(hparams["dgm_layers"], dropout=hparams["dropout"])
@@ -110,6 +110,7 @@ class Model_channel(pl.LightningModule):
             x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
         elif self.dgm_name == 'topk_dgm':
             x_aux, edges, edge_weights = self.graph_f(x, data["edge_index"], batch) 
+            
         elif self.dgm_name == 'no_dgm': 
             # x_aux = self.graph_f(x, data["edge_index"]) 
             edges = data["edge_index"]
