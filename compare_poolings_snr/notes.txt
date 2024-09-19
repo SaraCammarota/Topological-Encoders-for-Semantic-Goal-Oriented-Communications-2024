@@ -1,0 +1,5 @@
+i plot dentro compare_poolings_snr sono stati ottenuti 
+
+training WITH noise
+WITHOUT adjacency in DGM 
+on IMDB_BINARY dataset

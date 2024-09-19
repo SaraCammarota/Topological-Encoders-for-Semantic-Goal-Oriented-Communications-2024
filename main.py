@@ -14,7 +14,7 @@ from loaders import *
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck
-
+import pickle
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 
@@ -325,6 +325,14 @@ def compare_poolings(config: DictConfig, snr):
         method_accuracies = []
         method_std = []
 
+        if config.pooling.pooling_type == 'perceiver': 
+            config.my_model.name = 'perceiver'
+        elif config.pooling.pooling_type == 'mlp_bottleneck':
+            config.my_model.name = 'perceiver'
+        elif config.pooling.pooling_type in ['asa', 'sag', 'topk']:
+            config.my_model.name = 'dgm_channel'
+
+
         for pool_ratio in config.exp.pooling_ratios:
 
             config.pooling.pooling_ratio = pool_ratio
@@ -356,7 +364,7 @@ def plot_results_pool(results, pooling_ratios, config):
         std_dev = results["std"]
         plt.errorbar(pooling_ratios, accuracies, yerr=std_dev, label=f"{pool_method.upper()}", capsize=5, marker='o')
 
-    plt.title(f"Accuracy vs Pooling Ratio for Different Pooling Methods. Trained with noise on {config.dataset.loader.parameters.data_name}")
+    plt.title(f"Accuracy vs Pooling Ratio for Different Pooling Methods. Fixed SNR to {config.my_model.channel.snr_db}")
     plt.xlabel("Pooling Ratio")
     plt.ylabel("Accuracy")
     plt.legend(title="Pooling Methods")
@@ -365,8 +373,8 @@ def plot_results_pool(results, pooling_ratios, config):
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
-def compare_poolings_over_snr(config: DictConfig):
-    save_dir = "compare_poolings" 
+def compare_poolings_fixed_snr(config: DictConfig):
+    save_dir = "compare_poolings_fixedsnr" 
     os.makedirs(save_dir, exist_ok=True)  
 
     for snr_value in config.exp.snr_values:
@@ -386,78 +394,247 @@ def compare_poolings_over_snr(config: DictConfig):
 
 # for fixed pooling ratio in validation, compare different SNR values
 
-def compare_snrs(config: DictConfig, pool_ratio):
+# def compare_snrs(config: DictConfig, pool_ratio):
 
-    config.pooling.pooling_ratio = pool_ratio
+#     config.pooling.pooling_ratio = pool_ratio
 
-    results = {}
+#     results = {}
 
-    for pool_method in config.exp.pool_methods: 
+#     for pool_method in config.exp.pool_methods: 
 
-        config.pooling.pooling_type = pool_method
+#         config.pooling.pooling_type = pool_method
 
-        method_accuracies = []
-        method_std = []
+#         method_accuracies = []
+#         method_std = []
 
-        for snr_value in config.exp.snr_values:
+#         for snr_value in config.exp.snr_values:
 
-            config.my_model.channel.snr_db = snr_value
-            trainer, model, datamodule = setup_training(config)
+#             config.my_model.channel.snr_db = snr_value
+#             trainer, model, datamodule = setup_training(config)
 
-            trial_accuracies = []
+#             trial_accuracies = []
 
-            for _ in range(config.exp.num_trials):
+#             for _ in range(config.exp.num_trials):
 
-                test_result = trainer.validate(model, datamodule)
-                trial_accuracies.append(test_result[0]['val_acc'])
+#                 test_result = trainer.validate(model, datamodule)
+#                 trial_accuracies.append(test_result[0]['val_acc'])
 
-            method_accuracies.append(np.mean(trial_accuracies))
-            method_std.append(np.std(trial_accuracies))
+#             method_accuracies.append(np.mean(trial_accuracies))
+#             method_std.append(np.std(trial_accuracies))
 
-        results[pool_method] = {
-            "accuracies": method_accuracies,
-            "std": method_std
-        }
+#         results[pool_method] = {
+#             "accuracies": method_accuracies,
+#             "std": method_std
+#         }
 
-    plot_results_snr(results, config.exp.snr_values, config)
+#     plot_results_snr(results, config.exp.snr_values, config)
 
 
-def plot_results_snr(results, snr_values, config):
-    plt.figure(figsize=(10, 6))
-    for pool_method, results in results.items():
-        accuracies = results["accuracies"]
-        std_dev = results["std"]
-        plt.errorbar(snr_values, accuracies, yerr=std_dev, label=f"{pool_method.upper()}", capsize=5, marker='o')
+# def plot_results_snr(results, snr_values, config):
+#     plt.figure(figsize=(10, 6))
+#     for pool_method, results in results.items():
+#         accuracies = results["accuracies"]
+#         std_dev = results["std"]
+#         plt.errorbar(snr_values, accuracies, yerr=std_dev, label=f"{pool_method.upper()}", capsize=5, marker='o')
 
-    plt.title(f"Accuracy vs SNR for Different Pooling Methods. Fixed Pooling Ratio {config.pooling.pooling_ratio}")
-    plt.xlabel("SNR (dB)")
-    plt.ylabel("Accuracy")
-    plt.legend(title="Pooling Methods")
-    plt.grid(True)
-    plt.tight_layout()
+#     plt.title(f"Accuracy vs SNR for Different Pooling Methods. Fixed Pooling Ratio {config.pooling.pooling_ratio}")
+#     plt.xlabel("SNR (dB)")
+#     plt.ylabel("Accuracy")
+#     plt.legend(title="Pooling Methods")
+#     plt.grid(True)
+#     plt.tight_layout()
+
+# @hydra.main(version_base=None, config_path="conf", config_name="config")
+# def compare_poolings_fixed_poolingratio(config: DictConfig):
+#     save_dir = "compare_poolings_snr" 
+#     os.makedirs(save_dir, exist_ok=True)  
+
+#     for pool_ratio in config.exp.pooling_ratios:
+#         print(f"Running experiment with Pooling Ratio: {pool_ratio}")
+#         compare_snrs(config, pool_ratio) 
+#         filename = os.path.join(save_dir, f"accuracy_vs_snr_pooling_ratio_{pool_ratio}_INT.png")
+#         plt.savefig(filename)
+#         plt.close() 
+#         print(f"Plot saved to {filename}")
+
+
+def save_results(results, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(results, f)
+    print(f"Results saved to {filename}")
+
+def load_results(filename):
+    if os.path.exists(filename):
+        with open(filename, 'rb') as f:
+            results = pickle.load(f)
+        print(f"Results loaded from {filename}")
+        return results
+    return {}
+
+
+def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_method, pool_ratio, results):
+    """
+    Compare model validation performance for a fixed SNR value and different pooling methods and ratios.
+    """
+    config.my_model.channel.snr_db = snr
+
+    trial_accuracies = []
+
+
+    # Validate the trained model multiple times for stability
+    for _ in range(config.exp.num_trials):
+        test_result = trainer.validate(model, datamodule)
+        trial_accuracies.append(test_result[0]['val_acc'])
+
+    if snr not in results:
+        results[snr] = {}
+
+    if pool_method not in results[snr]:
+        results[snr][pool_method] = {}
+
+    results[snr][pool_method][pool_ratio] = {
+        "accuracies": np.mean(trial_accuracies),
+        "std": np.std(trial_accuracies)
+    }
+
+    return results
+
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_poolings_fixed_snr(config: DictConfig):
-    save_dir = "compare_poolings_snr" 
-    os.makedirs(save_dir, exist_ok=True)  
+    save_dir = "results_poolings_snrs_without_noise"
+    os.makedirs(save_dir, exist_ok=True)
+    results_file = os.path.join(save_dir, "results.pkl")
 
+    results = load_results(results_file)
+
+    # Loop over each pooling method and pooling ratio (these require retraining)
+    for pool_method in config.exp.pool_methods:
+
+        config.pooling.pooling_type = pool_method
+
+        if config.pooling.pooling_type == 'perceiver': 
+            config.my_model.name = 'perceiver'
+        elif config.pooling.pooling_type == 'mlp_bottleneck':
+            config.my_model.name = 'mlp_bottleneck'
+        elif config.pooling.pooling_type in ['asa', 'sag', 'topk']:
+            config.my_model.name = 'dgm_channel'
+
+        for pool_ratio in config.exp.pooling_ratios:
+
+            config.pooling.pooling_ratio = pool_ratio
+
+            # Train the model from scratch for the current pooling type and ratio
+            print(f"Training model with Pooling Method: {pool_method}, Pooling Ratio: {pool_ratio}")
+            trainer, best_model, datamodule = setup_training(config)
+
+            # Validate the trained model for different SNR values
+            for snr_value in config.exp.snr_values:
+                print(f"Validating with SNR: {snr_value} dB")
+
+                # Validate the model with the current SNR value
+                results = compare_poolings(config, trainer, snr_value, best_model, datamodule, pool_method, pool_ratio, results)
+
+    # Generate a plot for this SNR value
+    save_results(results, results_file)
+    plot_results_pool_per_snr(results, config.exp.pooling_ratios, config)
+    plot_results_pool_per_ratio(results, config.exp.snr_values, config)
+    
+    # # Save the plot
+    # filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
+    # plt.savefig(filename)
+    # plt.close()  # Close the plot to avoid overlap
+
+    print(f"Plots saved to {save_dir}")
+
+
+def plot_results_pool_per_ratio(results, snr_values, config):
+    # Iterate over each pooling ratio
     for pool_ratio in config.exp.pooling_ratios:
-        print(f"Running experiment with Pooling Ratio: {pool_ratio}")
-        compare_snrs(config, pool_ratio) 
-        filename = os.path.join(save_dir, f"accuracy_vs_snr_pooling_ratio_{pool_ratio}.png")
+        plt.figure(figsize=(10, 6))
+        
+        # Iterate over each pooling method
+        for pool_method in config.exp.pool_methods:
+            accuracies = []
+            std_devs = []
+
+            # Collect accuracy and std dev for each SNR value for this pooling ratio
+            for snr_value in snr_values:
+                if pool_method in results[snr_value] and pool_ratio in results[snr_value][pool_method]:
+                    accuracies.append(results[snr_value][pool_method][pool_ratio]["accuracies"])
+                    std_devs.append(results[snr_value][pool_method][pool_ratio]["std"])
+                else:
+                    print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
+                    accuracies.append(None)
+                    std_devs.append(0)
+
+            # Plot the accuracies with error bars for the current method
+            plt.errorbar(snr_values, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
+
+        # Customize each plot for the current pooling ratio
+        plt.title(f"Accuracy vs SNR for Pooling Ratio: {pool_ratio}")
+        plt.xlabel("SNR (dB)")
+        plt.ylabel("Accuracy")
+        plt.legend(title="Pooling Methods")
+        plt.grid(True)
+        plt.tight_layout()
+
+        # Save the plot as a PNG file
+        save_dir = "comparison_plots/without_noise/compare_poolings_ratio_plots"
+        os.makedirs(save_dir, exist_ok=True)
+        filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
         plt.savefig(filename)
-        plt.close() 
+        plt.close()  # Close the plot to avoid overlap
+
         print(f"Plot saved to {filename}")
 
 
 
+def plot_results_pool_per_snr(results, pooling_ratios, config):
+    # Iterate over each SNR value in the results dictionary
+    for snr_value in results:
+        plt.figure(figsize=(10, 6))
+        
+        # Iterate over each pooling method for the given SNR value
+        for pool_method, pool_data in results[snr_value].items():
+            accuracies = []
+            std_devs = []
 
+            # Extract accuracies and std deviations for each pooling ratio in the current method
+            for pool_ratio in pooling_ratios:
+                if pool_ratio in pool_data:
+                    accuracies.append(pool_data[pool_ratio]["accuracies"])
+                    std_devs.append(pool_data[pool_ratio]["std"])
+                else:
+                    print(f"No data found for pooling ratio: {pool_ratio} under method: {pool_method}")
+                    accuracies.append(None)
+                    std_devs.append(0)
+
+            # Plot the accuracies with error bars for the current method
+            plt.errorbar(pooling_ratios, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
+
+        # Customize each plot for the current SNR value
+        plt.title(f"Accuracy vs Pooling Ratio for SNR: {snr_value} dB")
+        plt.xlabel("Pooling Ratio")
+        plt.ylabel("Accuracy")
+        plt.legend(title="Pooling Methods")
+        plt.grid(True)
+        plt.tight_layout()
+
+        # Save the plot as a PNG file
+        save_dir = "comparison_plots/without_noise/compare_poolings_snr_plots"
+        os.makedirs(save_dir, exist_ok=True)
+        filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
+        plt.savefig(filename)
+        plt.close()  # Close the plot to avoid overlap
+
+        print(f"Plot saved to {filename}")
 
 
 if __name__ == "__main__":
 
     #train_and_plot()
-    #setup_training()
+    # setup_training()
     #train_and_plot_comparison()
     compare_poolings_fixed_snr()
 

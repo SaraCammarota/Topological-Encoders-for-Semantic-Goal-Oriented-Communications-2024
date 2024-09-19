@@ -30,7 +30,9 @@ class Model_channel(pl.LightningModule):
         elif self.pooling_type == 'sag': 
             self.pool = SAGPooling(in_channels = hparams["pre_layers"][0], ratio = float(self.pooling_ratio))      
         elif self.pooling_type == 'asa': 
-            self.pool = ASAPooling(in_channels = hparams["pre_layers"][0], ratio = float(self.pooling_ratio))      
+            self.pool = ASAPooling(in_channels = hparams["pre_layers"][0], ratio = float(self.pooling_ratio))     
+        else:
+            print(f'{self.pooling_type} not implemented.') 
         
         self.noisy_training = hparams["noisy_training"]
         self.noise = NoiseBlock()
@@ -93,7 +95,7 @@ class Model_channel(pl.LightningModule):
         elif hparams["skip_connection"] == False: 
             self.skip = None
 
-        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])    
+        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])    # TODO MLP or GNN?
 
     def forward(self, data):
         '''
