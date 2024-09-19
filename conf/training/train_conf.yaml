@@ -1,5 +1,5 @@
 max_epochs: 100
-lr: 1e-3
+lr: 1e-2
 optimizer: "adam"
 noisy: true
 early_stopping: 
