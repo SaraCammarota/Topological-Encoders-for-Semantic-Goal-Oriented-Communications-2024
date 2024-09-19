@@ -1,1 +1,0 @@
-the pickle in this folder refers to trainign WITHOUT noise on IMDB_BINARY. WITHOUT adjacency in DGM

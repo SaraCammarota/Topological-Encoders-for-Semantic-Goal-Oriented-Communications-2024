@@ -392,72 +392,6 @@ def compare_poolings_fixed_snr(config: DictConfig):
 
 
 
-# for fixed pooling ratio in validation, compare different SNR values
-
-# def compare_snrs(config: DictConfig, pool_ratio):
-
-#     config.pooling.pooling_ratio = pool_ratio
-
-#     results = {}
-
-#     for pool_method in config.exp.pool_methods: 
-
-#         config.pooling.pooling_type = pool_method
-
-#         method_accuracies = []
-#         method_std = []
-
-#         for snr_value in config.exp.snr_values:
-
-#             config.my_model.channel.snr_db = snr_value
-#             trainer, model, datamodule = setup_training(config)
-
-#             trial_accuracies = []
-
-#             for _ in range(config.exp.num_trials):
-
-#                 test_result = trainer.validate(model, datamodule)
-#                 trial_accuracies.append(test_result[0]['val_acc'])
-
-#             method_accuracies.append(np.mean(trial_accuracies))
-#             method_std.append(np.std(trial_accuracies))
-
-#         results[pool_method] = {
-#             "accuracies": method_accuracies,
-#             "std": method_std
-#         }
-
-#     plot_results_snr(results, config.exp.snr_values, config)
-
-
-# def plot_results_snr(results, snr_values, config):
-#     plt.figure(figsize=(10, 6))
-#     for pool_method, results in results.items():
-#         accuracies = results["accuracies"]
-#         std_dev = results["std"]
-#         plt.errorbar(snr_values, accuracies, yerr=std_dev, label=f"{pool_method.upper()}", capsize=5, marker='o')
-
-#     plt.title(f"Accuracy vs SNR for Different Pooling Methods. Fixed Pooling Ratio {config.pooling.pooling_ratio}")
-#     plt.xlabel("SNR (dB)")
-#     plt.ylabel("Accuracy")
-#     plt.legend(title="Pooling Methods")
-#     plt.grid(True)
-#     plt.tight_layout()
-
-# @hydra.main(version_base=None, config_path="conf", config_name="config")
-# def compare_poolings_fixed_poolingratio(config: DictConfig):
-#     save_dir = "compare_poolings_snr" 
-#     os.makedirs(save_dir, exist_ok=True)  
-
-#     for pool_ratio in config.exp.pooling_ratios:
-#         print(f"Running experiment with Pooling Ratio: {pool_ratio}")
-#         compare_snrs(config, pool_ratio) 
-#         filename = os.path.join(save_dir, f"accuracy_vs_snr_pooling_ratio_{pool_ratio}_INT.png")
-#         plt.savefig(filename)
-#         plt.close() 
-#         print(f"Plot saved to {filename}")
-
-
 def save_results(results, filename):
     with open(filename, 'wb') as f:
         pickle.dump(results, f)
@@ -476,7 +410,7 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
     """
     Compare model validation performance for a fixed SNR value and different pooling methods and ratios.
     """
-    config.my_model.channel.snr_db = snr
+    model.snr_db = snr
 
     trial_accuracies = []
 
@@ -539,13 +473,8 @@ def compare_poolings_fixed_snr(config: DictConfig):
     save_results(results, results_file)
     plot_results_pool_per_snr(results, config.exp.pooling_ratios, config)
     plot_results_pool_per_ratio(results, config.exp.snr_values, config)
-    
-    # # Save the plot
-    # filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
-    # plt.savefig(filename)
-    # plt.close()  # Close the plot to avoid overlap
 
-    print(f"Plots saved to {save_dir}")
+    print(f"Results saved to {save_dir}")
 
 
 def plot_results_pool_per_ratio(results, snr_values, config):
@@ -580,7 +509,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/without_noise/compare_poolings_ratio_plots"
+        save_dir = "comparison_plots/with_noise/compare_poolings_ratio_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
         plt.savefig(filename)
@@ -622,7 +551,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/without_noise/compare_poolings_snr_plots"
+        save_dir = "comparison_plots/with_noise/compare_poolings_snr_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
         plt.savefig(filename)

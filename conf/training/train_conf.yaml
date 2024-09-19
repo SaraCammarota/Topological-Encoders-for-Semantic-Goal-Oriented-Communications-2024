@@ -1,7 +1,7 @@
 max_epochs: 100
 lr: 1e-3
 optimizer: "adam"
-noisy: false
+noisy: true
 early_stopping: 
   monitor: "val_loss"
   patience: 10
