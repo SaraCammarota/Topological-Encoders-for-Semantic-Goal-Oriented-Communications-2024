@@ -1,4 +1,4 @@
 
 pooling_type: 'topk'
-pooling_ratio: 0.5
+pooling_ratio: 0.99
 topk_minscore: 0.1

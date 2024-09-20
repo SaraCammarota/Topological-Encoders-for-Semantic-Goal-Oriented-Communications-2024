@@ -1,7 +1,7 @@
 defaults: 
   - _self_
-  - dataset: mnist
-  - my_model: mlp_bottleneck
+  - dataset: imdb_binary
+  - my_model: perceiver
   - dgm: no_dgm_conf   #dummy
   - pooling: perceiver
   - training: train_conf
@@ -13,9 +13,10 @@ defaults:
 hydra:
   sweeper:
     params:
-      my_model.layers.n_pre: choice(2, 3, 4)
-      my_model.layers.n_post: choice(2, 3, 4)
-      my_model.layers.receiver: choice(2, 3)
+      # my_model.layers.n_pre: choice(2, 3, 4)
+      # my_model.layers.n_post: choice(2, 3, 4)
+      # my_model.layers.receiver: choice(2, 3)
       #my_model.dropout: choice(0.1, 0.2)         
-      training.lr: choice(0.001, 0.0005)   
+      # training.lr: choice(0.001, 0.0005)   
+      pooling.pooling_ratio: choice(0.1, 0.25, 0.5, 0.75, 0.99)
 

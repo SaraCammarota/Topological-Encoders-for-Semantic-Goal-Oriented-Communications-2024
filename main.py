@@ -565,5 +565,5 @@ if __name__ == "__main__":
     #train_and_plot()
     setup_training()
     #train_and_plot_comparison()
-    # compare_poolings_fixed_snr()
+    compare_poolings_fixed_snr()
 

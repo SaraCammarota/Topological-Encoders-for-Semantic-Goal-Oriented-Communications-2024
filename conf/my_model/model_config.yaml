@@ -11,7 +11,7 @@ layers:
   hsize: 32
   n_pre: 3
   n_post: 2
-  n_conv: 5
+  n_conv: 3
   n_dgm_layers: 3
   receiver: 3
 

@@ -1,5 +1,5 @@
 defaults:
-  - dataset: mutag
+  - dataset: imdb_binary
   - my_model: model_config
   - dgm: topk_dgm_conf
   - pooling: sag_conf
@@ -12,13 +12,88 @@ defaults:
 hydra:
   sweeper:
     params:
+      # pooling.pooling_ratio: choice(0.1, 0.25, 0.5, 0.75, 0.99)
       # my_model.layers.n_pre: choice(3, 4)
-      # my_model.layers.n_post: choice(3, 4)
-      # my_model.layers.n_conv: choice(4, 5)
-      # my_model.layers.n_dgm_layers: choice(3, 4)
-      pooling.pooling_ratio: choice(0.1, 0.25, 0.5, 0.75, 0.99)
-      # my_model.dropout: choice(0.1, 0.2)         
-      # training.lr: choice(0.1, 0.001, 0.0001, 0.00001)   
+      # my_model.layers.n_post: choice(2, 3)
+      my_model.layers.n_conv: choice(3, 4)
+      my_model.layers.n_dgm_layers: choice(3, 4)
+      # training.lr: choice(0.0001, 0.00001)   
+
+
+# IMDB BINARY
+
+## topk pooling 
+
+### 0.1 
+ #0 : my_model.layers.n_pre=3 my_model.layers.n_post=2 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3 training.lr=0.0001  0.531
+ #4 : my_model.layers.n_pre=3 my_model.layers.n_post=2 my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=3 training.lr=0.0001  0.514
+ #6 : my_model.layers.n_pre=3 my_model.layers.n_post=2 my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=4 training.lr=0.0001  0.499 sul train
+
+### 0.25 
+ #0 : my_model.layers.n_pre=3 my_model.layers.n_post=2 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3   0.532 (501 train)
+ #3 : my_model.layers.n_pre=3 my_model.layers.n_post=2 my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=4   0.527 (497 sul train)
+ #9 : my_model.layers.n_pre=4 my_model.layers.n_post=2 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=4    0.516 (513)
+
+### 0.5    --- npre = 3, npost = 2 fixed
+ #0 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                  0.542 (499 t)
+ #3 : my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=4                  0.529 (512)
+
+### 0.75
+  #0 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                 0.526 (499)
+
+### 0.99
+  #0 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                 0.524 (510)
+  #0 : my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=4                 0.514 (495)                 
+
+
+## asa pooling 
+
+### 0.1 
+ #0 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                0.528 (533)
+ #2 : my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=3              0.517 (526)
+
+### 0.25 
+#0 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                0.518 (517)
+#1 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=4              0.527 (515)
+#2 : my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=3              0.519 (513)
+
+### 0.5    
+#0 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                0.528 (511)
+#1 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=4              0.521 (508)
+#2 : my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=3              0.515 (509)
+
+### 0.75
+
+
+### 0.99
+
+
+## sag pooling 
+
+### 0.1 
+ #0 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                0.507 (501)
+      
+
+### 0.25 
+#0 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3                0.492 (501)              
+
+### 0.5    
+#0 my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=3              0.545 (499)
+#1 : my_model.layers.n_conv=3 my_model.layers.n_dgm_layers=4            0.505 (501)
+#3 : my_model.layers.n_conv=4 my_model.layers.n_dgm_layers=4                        
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # best configs with top-5 dgm:

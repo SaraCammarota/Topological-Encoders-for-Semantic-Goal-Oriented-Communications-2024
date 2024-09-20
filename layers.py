@@ -310,29 +310,25 @@ class DGM_c(nn.Module):
         self.scale=None
         self.distance = distance
         
-        self.scale = nn.Parameter(torch.tensor(-1).float(),requires_grad=False)
-        self.centroid = nn.Parameter(torch.zeros((1,DGM_c.input_dim)).float(),requires_grad=True)
+        # self.scale = nn.Parameter(torch.tensor(-1).float(),requires_grad=False)
+        # self.centroid = nn.Parameter(torch.zeros((1,DGM_c.input_dim)).float(),requires_grad=False)
         
         
     def forward(self, x, A, not_used=None, fixedges=None):
         
         x = self.embed_f(x,A)  
-        
-        # estimate normalization parameters
-        if self.scale <0:            
-            self.centroid.data = x.mean(-2,keepdim=True).detach()
-            self.scale.data = (0.9/(x-self.centroid).abs().max()).detach()
-            #print(f"Centroid shape: {self.centroid.shape}")
 
-        x_centered = x - self.centroid
-        #print(f"x_centered shape: {x_centered.shape}")
-        
+        # if self.scale <0:            
+        #     self.centroid.data = x.mean(-2,keepdim=True).detach()
+        #     self.scale.data = (0.9/(x-self.centroid).abs().max()).detach()
+
+        # x_centered = x - self.centroid
         if self.distance=="hyperbolic":
-            D, _x = pairwise_poincare_distances((x-self.centroid)*self.scale)
+            D, _x = pairwise_poincare_distances(x)
         else:
-            D, _x = pairwise_euclidean_distances(x_centered*self.scale)
+            D, _x = pairwise_euclidean_distances(x)
             
-        A = torch.sigmoid(self.temperature*(self.threshold.abs()-D))
+        A = torch.sigmoid(self.temperature*(self.threshold.abs()- D))    # 1/1+e^(- t*(thresh - D ))
 
         edge_index, edge_weight = dense_to_sparse(A)
         
@@ -359,22 +355,20 @@ class DGM_c_batch(nn.Module):
         num_nodes = x.size(0)  # Total number of nodes
         num_graphs = batch.max().item() + 1  # Number of graphs in the batch
         
-        # Split the batch into individual graphs
         x_list = []
         edge_index_list = []
         edge_weight_list = []
         node_offset = 0
         
         for graph_id in range(num_graphs):
-            # Select the nodes and edges that belong to the current graph
+           
             graph_mask = (batch == graph_id)
-            x_graph = x[graph_mask]  # Features of nodes in this graph
+            x_graph = x[graph_mask]  
             
-            # Get the edges for the current graph
+            
             edge_mask = (batch[edge_index[0]] == graph_id) & (batch[edge_index[1]] == graph_id)
-            edge_index_graph = edge_index[:, edge_mask] - node_offset  # Adjust edge indices for local nodes
+            edge_index_graph = edge_index[:, edge_mask] - node_offset  
 
-            # Apply DGM_c for the current graph
             x_graph, edge_index_graph, edge_weight_graph = self.dgm_c(x_graph, edge_index_graph)
 
             # Adjust edge indices to the global batch space

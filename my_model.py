@@ -101,12 +101,11 @@ class Model_channel(pl.LightningModule):
         '''
         data: a batch of data. Must have attributes: x, batch, ptr
         '''
-        
         x = data.x.detach()
         batch = data.batch_0
         ptr = data.ptr
         x = self.pre(x)
-        
+
         if self.skip is not None: 
             skip = self.skip(x)
 
@@ -163,10 +162,10 @@ class Model_channel(pl.LightningModule):
 
         x = self.receiver(x, edges)
 
+
         #x = torch.nn.functional.relu(x)
 
         x = global_mean_pool(x, batch)  #aggregate all features in one supernode per graph.
-        
         x = self.post(x, edges)
 
         return x, edges#, ne_probs
@@ -193,11 +192,11 @@ class Model_channel(pl.LightningModule):
 
         if torch.isnan(tr_loss).any() or torch.isnan(pred).any():
             print(f"NaN detected in training data or loss at batch {batch_idx}")
-            print(f"Predictions: {pred}, Labels: {train_lab}")
+            # print(f"Predictions: {pred}, Labels: {train_lab}")
         batch_size = batch.batch_0.max().item() + 1  
         self.log("train_acc", self.train_acc(pred.softmax(-1).argmax(-1), train_lab), on_step=False, on_epoch=True, prog_bar = True, batch_size = batch_size)
         self.log("train_loss", tr_loss, on_step=False, on_epoch=True, prog_bar = True, batch_size = batch_size)
-        #torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
+        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
 
         return tr_loss
 
@@ -213,7 +212,7 @@ class Model_channel(pl.LightningModule):
         # Check for NaN values in the loss or predictions
         if torch.isnan(val_loss).any() or torch.isnan(pred).any():
             print(f"NaN detected in validation data or loss at batch {batch_idx}")
-            print(f"Predictions: {pred}, Labels: {val_lab}")
+            # print(f"Predictions: {pred}, Labels: {val_lab}")
         batch_size = batch.batch_0.max().item() + 1  
         # Compute and log validation accuracy
         val_acc = self.val_acc(pred.softmax(-1).argmax(-1), val_lab)
@@ -221,6 +220,7 @@ class Model_channel(pl.LightningModule):
         # Log validation accuracy and loss
         self.log("val_acc", val_acc, on_step=False, on_epoch=True, prog_bar=True, batch_size = batch_size)
         self.log("val_loss", val_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size = batch_size)
+        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
 
         return val_loss
 
