@@ -436,7 +436,7 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_poolings_fixed_snr(config: DictConfig):
-    save_dir = "results_poolings_snrs_with_noise/mutag"
+    save_dir = "results_poolings_snrs_without_noise/mutag"
     os.makedirs(save_dir, exist_ok=True)
     results_file = os.path.join(save_dir, "results.pkl")
 
@@ -509,7 +509,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/mutag/with_noise/compare_poolings_ratio_plots"
+        save_dir = "comparison_plots/imdb_binary/without_noise/compare_poolings_ratio_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
         plt.savefig(filename)
@@ -551,7 +551,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/mutag/with_noise/compare_poolings_snr_plots"
+        save_dir = "comparison_plots/imdb_binary/without_noise/compare_poolings_snr_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
         plt.savefig(filename)
@@ -563,7 +563,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
 if __name__ == "__main__":
 
     #train_and_plot()
-    setup_training()
+    # setup_training()
     #train_and_plot_comparison()
     compare_poolings_fixed_snr()
 
