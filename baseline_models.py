@@ -667,6 +667,7 @@ class Knn_channel(pl.LightningModule):
         self.post = MLP(hparams["post_layers"], dropout = hparams["dropout"])   
 
         self.avg_accuracy = None
+        self.k = hparams['num_edges']
 
         if hparams["num_classes"] > 2:
             self.train_acc = Accuracy(task='multiclass', num_classes=hparams["num_classes"], average='macro')
@@ -701,8 +702,7 @@ class Knn_channel(pl.LightningModule):
         
         # LTI    done with knn instead of DGM
 
-        edges = knn_graph(x, k = 5, batch = batch)
-        print(edges)
+        edges = knn_graph(x, k = self.k, batch = batch)
 
         if self.skip is not None: 
             skip = self.skip(x)

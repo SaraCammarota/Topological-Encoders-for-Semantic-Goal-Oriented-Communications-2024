@@ -1,9 +1,9 @@
 defaults: 
   - _self_
   - dataset: imdb_binary
-  - my_model: perceiver
-  - dgm: no_dgm_conf   #dummy
-  - pooling: perceiver
+  - my_model: Knn_channel
+  - dgm: knn_conf  
+  - pooling: asa_conf
   - training: train_conf
   - exp: snr_conf
   - paths: default

@@ -1,0 +1,23 @@
+defaults: 
+  - _self_
+  - dataset: imdb_binary
+  - my_model: simple_knn   # simple_dgm or simple_knn
+  - dgm: knn_conf    # topk_dgm_conf or knn_conf  
+  - pooling: asa_conf
+  - training: train_conf
+  - exp: snr_conf
+  - paths: default
+
+
+
+hydra:
+  sweeper:
+    params:
+      # my_model.layers.n_pre: choice(2, 3, 4)
+      # my_model.layers.n_post: choice(2, 3, 4)
+      # my_model.layers.receiver: choice(2, 3)
+      #my_model.dropout: choice(0.1, 0.2)
+      dgm.k: choice(2, 3, 4, 5, 6, 7, 8, 9, 10)         
+      training.lr: choice(0.01, 0.001)   
+      # pooling.pooling_ratio: choice(0.1, 0.25, 0.5, 0.75, 0.99)
+

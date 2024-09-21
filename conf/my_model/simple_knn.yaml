@@ -1,4 +1,5 @@
-name: 'dgm_channel'
+
+name: 'simple_knn'
 
 metric:
   name: train_loss
@@ -8,16 +9,13 @@ seed: 42
 data_seed: 0
 
 layers: 
-  hsize: 32
-  n_pre: 3
+  hsize: 16
+  n_pre: 4
   n_post: 2
-  n_conv: 4
-  n_dgm_layers: 3
   receiver: 3
 
 
 dropout: 0.0
-use_gcn: false
 
 
 channel:
@@ -27,6 +25,3 @@ channel:
 graph_loss_reg: 1
 poly_loss_reg: 1
 ensemble_steps: 1
-
-skip_connection: True
-

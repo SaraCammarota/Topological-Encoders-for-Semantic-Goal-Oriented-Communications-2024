@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 from loaders import *
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck
+from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck, Knn_channel
 import pickle
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="conf", config_name="baseline_config")
 
 # we can do a "test" with IMDB-BINARY where the avg number of nodes per graph is 19.8 --> if we compress 50%, latent dimension is 10.
 
@@ -85,12 +85,12 @@ def setup_training(config):
         best_model_path = checkpoint_callback.best_model_path
         best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
 
-    # elif config.my_model.name == 'Knn_channel': 
-    #     channel = Knn_channel(hparams)
-    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback], logger=wandb_logger, log_every_n_steps=2)
-    #     trainer.fit(channel, datamodule)
-    #     best_model_path = checkpoint_callback.best_model_path
-    #     best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+    elif config.my_model.name == 'Knn_channel': 
+        channel = Knn_channel(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
 
 
     else:
@@ -436,7 +436,7 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_poolings_fixed_snr(config: DictConfig):
-    save_dir = "results_poolings_snrs_without_noise/mutag"
+    save_dir = "results_poolings_snrs_with_noise/mutag"
     os.makedirs(save_dir, exist_ok=True)
     results_file = os.path.join(save_dir, "results.pkl")
 
@@ -509,7 +509,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/imdb_binary/without_noise/compare_poolings_ratio_plots"
+        save_dir = "comparison_plots/mutag/with_noise/compare_poolings_ratio_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
         plt.savefig(filename)
@@ -551,7 +551,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/imdb_binary/without_noise/compare_poolings_snr_plots"
+        save_dir = "comparison_plots/mutag/with_noise/compare_poolings_snr_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
         plt.savefig(filename)

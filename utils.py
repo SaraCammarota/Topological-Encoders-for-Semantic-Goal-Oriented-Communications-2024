@@ -115,6 +115,7 @@ def create_hyperparameters(config: DictConfig):
         "noisy_training": config.training.get('noisy', False),
         "pca_dim": config.pooling.get('pca_dim', None),
         "avg_num_nodes": config.dataset.parameters.get("avg_num_nodes", None),
+        'num_edges': config.dgm.get('k', None)
     }
 
     return hyperparams
