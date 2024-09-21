@@ -1,9 +1,9 @@
 defaults: 
   - _self_
-  - dataset: imdb_binary
-  - my_model: Knn_channel
+  - dataset: mutag
+  - my_model: mlp_bottleneck
   - dgm: knn_conf  
-  - pooling: asa_conf
+  - pooling: perceiver
   - training: train_conf
   - exp: snr_conf
   - paths: default
@@ -18,5 +18,10 @@ hydra:
       # my_model.layers.receiver: choice(2, 3)
       #my_model.dropout: choice(0.1, 0.2)         
       # training.lr: choice(0.001, 0.0005)   
-      pooling.pooling_ratio: choice(0.1, 0.25, 0.5, 0.75, 0.99)
+      pooling.pooling_ratio: choice(0.99)
+      my_model.layers.n_pre: choice(1, 2, 3)
+      my_model.layers.n_post: choice(1, 2, 3)
+      my_model.layers.receiver: choice(1, 2, 3)
 
+
+    

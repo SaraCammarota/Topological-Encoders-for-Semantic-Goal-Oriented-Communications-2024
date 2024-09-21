@@ -16,7 +16,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck, Knn_channel
 import pickle
 
-@hydra.main(version_base=None, config_path="conf", config_name="baseline_config")
+@hydra.main(version_base=None, config_path="conf", config_name="config")
 
 # we can do a "test" with IMDB-BINARY where the avg number of nodes per graph is 19.8 --> if we compress 50%, latent dimension is 10.
 
@@ -436,7 +436,7 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_poolings_fixed_snr(config: DictConfig):
-    save_dir = "results_poolings_snrs_with_noise/mutag"
+    save_dir = "results_poolings_snrs_without_noise/imdb"
     os.makedirs(save_dir, exist_ok=True)
     results_file = os.path.join(save_dir, "results.pkl")
 
@@ -477,46 +477,90 @@ def compare_poolings_fixed_snr(config: DictConfig):
     print(f"Results saved to {save_dir}")
 
 
-def plot_results_pool_per_ratio(results, snr_values, config):
-    # Iterate over each pooling ratio
-    for pool_ratio in config.exp.pooling_ratios:
-        plt.figure(figsize=(10, 6))
+# def plot_results_pool_per_ratio(results, snr_values, config):
+#     # Iterate over each pooling ratio
+#     for pool_ratio in config.exp.pooling_ratios:
+#         plt.figure(figsize=(10, 6))
         
-        # Iterate over each pooling method
-        for pool_method in config.exp.pool_methods:
-            accuracies = []
-            std_devs = []
+#         # Iterate over each pooling method
+#         for pool_method in config.exp.pool_methods:
+#             accuracies = []
+#             std_devs = []
 
-            # Collect accuracy and std dev for each SNR value for this pooling ratio
-            for snr_value in snr_values:
-                if pool_method in results[snr_value] and pool_ratio in results[snr_value][pool_method]:
-                    accuracies.append(results[snr_value][pool_method][pool_ratio]["accuracies"])
-                    std_devs.append(results[snr_value][pool_method][pool_ratio]["std"])
-                else:
-                    print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
-                    accuracies.append(None)
-                    std_devs.append(0)
+#             # Collect accuracy and std dev for each SNR value for this pooling ratio
+#             for snr_value in snr_values:
+#                 if pool_method in results[snr_value] and pool_ratio in results[snr_value][pool_method]:
+#                     accuracies.append(results[snr_value][pool_method][pool_ratio]["accuracies"])
+#                     std_devs.append(results[snr_value][pool_method][pool_ratio]["std"])
+#                 else:
+#                     print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
+#                     accuracies.append(None)
+#                     std_devs.append(0)
 
-            # Plot the accuracies with error bars for the current method
-            plt.errorbar(snr_values, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
+#             # Plot the accuracies with error bars for the current method
+#             plt.errorbar(snr_values, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
 
-        # Customize each plot for the current pooling ratio
-        plt.title(f"Accuracy vs SNR for Pooling Ratio: {pool_ratio}")
-        plt.xlabel("SNR (dB)")
-        plt.ylabel("Accuracy")
-        plt.legend(title="Pooling Methods")
-        plt.grid(True)
-        plt.tight_layout()
+#         # Customize each plot for the current pooling ratio
+#         plt.title(f"Accuracy vs SNR for Pooling Ratio: {pool_ratio}")
+#         plt.xlabel("SNR (dB)")
+#         plt.ylabel("Accuracy")
+#         plt.legend(title="Pooling Methods")
+#         plt.grid(True)
+#         plt.tight_layout()
 
-        # Save the plot as a PNG file
-        save_dir = "comparison_plots/mutag/with_noise/compare_poolings_ratio_plots"
-        os.makedirs(save_dir, exist_ok=True)
-        filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
-        plt.savefig(filename)
-        plt.close()  # Close the plot to avoid overlap
+#         # Save the plot as a PNG file
+#         save_dir = "comparison_plots/imdb/with_noise/compare_poolings_ratio_plots"
+#         os.makedirs(save_dir, exist_ok=True)
+#         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
+#         plt.savefig(filename)
+#         plt.close()  # Close the plot to avoid overlap
 
-        print(f"Plot saved to {filename}")
+#         print(f"Plot saved to {filename}")
 
+
+
+# def plot_results_pool_per_snr(results, pooling_ratios, config):
+#     # Iterate over each SNR value in the results dictionary
+#     for snr_value in results:
+#         plt.figure(figsize=(10, 6))
+        
+#         # Iterate over each pooling method for the given SNR value
+#         for pool_method, pool_data in results[snr_value].items():
+#             accuracies = []
+#             std_devs = []
+
+#             # Extract accuracies and std deviations for each pooling ratio in the current method
+#             for pool_ratio in pooling_ratios:
+#                 if pool_ratio in pool_data:
+#                     accuracies.append(pool_data[pool_ratio]["accuracies"])
+#                     std_devs.append(pool_data[pool_ratio]["std"])
+#                 else:
+#                     print(f"No data found for pooling ratio: {pool_ratio} under method: {pool_method}")
+#                     accuracies.append(None)
+#                     std_devs.append(0)
+
+#             # Plot the accuracies with error bars for the current method
+#             plt.errorbar(pooling_ratios, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
+
+#         # Customize each plot for the current SNR value
+#         plt.title(f"Accuracy vs Pooling Ratio for SNR: {snr_value} dB")
+#         plt.xlabel("Pooling Ratio")
+#         plt.ylabel("Accuracy")
+#         plt.legend(title="Pooling Methods")
+#         plt.grid(True)
+#         plt.tight_layout()
+
+#         # Save the plot as a PNG file
+#         save_dir = "comparison_plots/imdb/with_noise/compare_poolings_snr_plots"
+#         os.makedirs(save_dir, exist_ok=True)
+#         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
+#         plt.savefig(filename)
+#         plt.close()  # Close the plot to avoid overlap
+
+#         print(f"Plot saved to {filename}")
+
+
+# # ----- new style
 
 
 def plot_results_pool_per_snr(results, pooling_ratios, config):
@@ -524,8 +568,15 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
     for snr_value in results:
         plt.figure(figsize=(10, 6))
         
+        # Get the list of pooling methods for easy access
+        pool_methods = list(results[snr_value].keys())
+        
+        # Store line styles and labels for the legend
+        legend_lines = []
+        legend_labels = []
+
         # Iterate over each pooling method for the given SNR value
-        for pool_method, pool_data in results[snr_value].items():
+        for idx, (pool_method, pool_data) in enumerate(results[snr_value].items()):
             accuracies = []
             std_devs = []
 
@@ -539,25 +590,110 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
                     accuracies.append(None)
                     std_devs.append(0)
 
-            # Plot the accuracies with error bars for the current method
-            plt.errorbar(pooling_ratios, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
+            # Determine line style and properties
+            line_style = '--' if idx >= len(pool_methods) - 2 else '-'  # Dashed line for the last two methods
+            line, _, _ = plt.errorbar(
+                pooling_ratios, accuracies, yerr=std_devs, 
+                label=f"{pool_method.upper()}", capsize=5, marker='o', 
+                linestyle=line_style, linewidth=2.5, alpha=0.7  # Thicker lines and reduced opacity
+            )
+
+            # Append Line2D object and label for legend
+            legend_lines.append(Line2D([0], [0], color=line.get_color(), linestyle=line_style, linewidth=2.5))
+            legend_labels.append(pool_method.upper())
 
         # Customize each plot for the current SNR value
-        plt.title(f"Accuracy vs Pooling Ratio for SNR: {snr_value} dB")
-        plt.xlabel("Pooling Ratio")
-        plt.ylabel("Accuracy")
-        plt.legend(title="Pooling Methods")
+        plt.title(f"Accuracy vs Pooling Ratio for SNR: {snr_value} dB", fontsize=16)  # Increased font size
+        plt.xlabel("Pooling Ratio", fontsize=16)  # Increased font size
+        plt.ylabel("Accuracy", fontsize=16)  # Increased font size
+        plt.xticks(fontsize=14)  # Increased tick size
+        plt.yticks(fontsize=14)  # Increased tick size
+
+        # Use the legend_lines and legend_labels to create the legend
+        plt.legend(legend_lines, legend_labels, fontsize=12)
+        
         plt.grid(True)
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/mutag/with_noise/compare_poolings_snr_plots"
+        save_dir = "comparison_plots/imdb/without_noise/compare_poolings_snr_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
         plt.savefig(filename)
         plt.close()  # Close the plot to avoid overlap
 
         print(f"Plot saved to {filename}")
+
+def plot_results_pool_per_ratio(results, snr_values, config):
+    # Iterate over each pooling ratio
+    for pool_ratio in config.exp.pooling_ratios:
+        plt.figure(figsize=(10, 6))
+        
+        # Get the list of pooling methods for easy access
+        pool_methods = config.exp.pool_methods
+
+        # Store line styles and labels for the legend
+        legend_lines = []
+        legend_labels = []
+        
+        # Iterate over each pooling method
+        for idx, pool_method in enumerate(pool_methods):
+            accuracies = []
+            std_devs = []
+
+            # Collect accuracy and std dev for each SNR value for this pooling ratio
+            for snr_value in snr_values:
+                if pool_method in results[snr_value] and pool_ratio in results[snr_value][pool_method]:
+                    accuracies.append(results[snr_value][pool_method][pool_ratio]["accuracies"])
+                    std_devs.append(results[snr_value][pool_method][pool_ratio]["std"])
+                else:
+                    print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
+                    accuracies.append(None)
+                    std_devs.append(0)
+
+            # Determine line style and properties
+            line_style = '--' if idx >= len(pool_methods) - 2 else '-'  # Dashed line for the last two methods
+            line, _, _ = plt.errorbar(
+                snr_values, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", 
+                capsize=5, marker='o', linestyle=line_style, 
+                linewidth=2.5, alpha=0.7  # Thicker lines and reduced opacity
+            )
+
+            # Append Line2D object and label for legend
+            legend_lines.append(Line2D([0], [0], color=line.get_color(), linestyle=line_style, linewidth=2.5))
+            legend_labels.append(pool_method.upper())
+
+        # Customize each plot for the current pooling ratio
+        plt.title(f"Accuracy vs SNR for Pooling Ratio: {pool_ratio}", fontsize=16)  # Increased font size
+        plt.xlabel("SNR (dB)", fontsize=14)  # Increased font size
+        plt.ylabel("Accuracy", fontsize=14)  # Increased font size
+        plt.xticks(fontsize=12)  # Increased tick size
+        plt.yticks(fontsize=12)  # Increased tick size
+        
+        # Use the legend_lines and legend_labels to create the legend
+        plt.legend(legend_lines, legend_labels, title="Pooling Methods", fontsize=12)
+        
+        plt.grid(True)
+        plt.tight_layout()
+
+        # Save the plot as a PNG file
+        save_dir = "comparison_plots/imdb/without_noise/compare_poolings_ratio_plots"
+        os.makedirs(save_dir, exist_ok=True)
+        filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
+        plt.savefig(filename)
+        plt.close()  # Close the plot to avoid overlap
+
+        print(f"Plot saved to {filename}")
+
+
+
+
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def plot_existing_res(config: DictConfig):
+    filename = 'without_noise_results.pkl'
+    results = load_results(filename)
+    plot_results_pool_per_snr(results, config.exp.pooling_ratios, config)
+    plot_results_pool_per_ratio(results, config.exp.snr_values, config)
 
 
 if __name__ == "__main__":
@@ -566,4 +702,4 @@ if __name__ == "__main__":
     # setup_training()
     #train_and_plot_comparison()
     compare_poolings_fixed_snr()
-
+    # plot_existing_res()
