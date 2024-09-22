@@ -18,8 +18,6 @@ import pickle
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 
-# we can do a "test" with IMDB-BINARY where the avg number of nodes per graph is 19.8 --> if we compress 50%, latent dimension is 10.
-
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
 
@@ -694,6 +692,59 @@ def plot_existing_res(config: DictConfig):
     results = load_results(filename)
     plot_results_pool_per_snr(results, config.exp.pooling_ratios, config)
     plot_results_pool_per_ratio(results, config.exp.snr_values, config)
+
+
+
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def compare_with_without_dgm(config: DictConfig):
+
+    results = {}
+    # ensure training with noise
+    config.training.noisy = True
+    # loop over different pooling types (ASA, SAG, TopK)
+    for pooling_type in config.exp.pooling_type:
+        config.pooling.pooling_type = pooling_type
+
+        for pooling_ratio in config.exp.pooling_ratios: 
+            config.pooling.pooling_ratio = pooling_ratio 
+
+
+            # Train the model from scratch for the current pooling type and ratio
+            print(f"Training model with Pooling Method: {pooling_type}, Pooling Ratio: {pooling_ratio}")
+            trainer, best_model, datamodule = setup_training(config)
+
+            # Validate the trained model for different SNR values
+            for snr_value in config.exp.snr_values:
+                print(f"Validating with SNR: {snr_value} dB")
+
+                # Validate the model with the current SNR value
+                results = compare_poolings(config, trainer, snr_value, best_model, datamodule, pooling_type, pooling_ratio, results)
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
