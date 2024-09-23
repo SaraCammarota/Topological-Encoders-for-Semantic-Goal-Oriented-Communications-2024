@@ -17,7 +17,6 @@ from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottlene
 import pickle
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
-
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
 
@@ -38,68 +37,72 @@ def setup_training(config):
     preprocessor = PreProcessor(dataset, dataset_dir, transform_config)
     train_data, validation_data, test_data = preprocessor.load_dataset_splits(config.dataset.split_params)
 
+    print(train_data[0].y)
+
     datamodule = TBXDataloader(train_data, validation_data, test_data, batch_size=config.dataset.dataloader_params.batch_size,
                                num_workers=config.dataset.dataloader_params.num_workers)
-
-    early_stopping_callback = EarlyStopping(
-        monitor=config.training.early_stopping.monitor,
-        patience=config.training.early_stopping.patience,
-        mode=config.training.early_stopping.mode,
-        verbose=True
-    )
-
-    checkpoint_callback = ModelCheckpoint(
-        monitor=config.training.early_stopping.monitor, 
-        filename='{epoch:02d}-{val_loss:.2f}',  
-        save_top_k=1,  
-        mode=config.training.early_stopping.mode, 
-        save_weights_only=True  
-    )
-
-
-    #wandb_logger = WandbLogger(project='imdb_new_dgm')
-    # wandb_logger = WandbLogger(project='mine_vs_baseline_PROTEINS_nodgm')
-    hparams = create_hyperparameters(config)
-    #wandb_logger.log_hyperparams(hparams)
-
-    if config.my_model.name == 'dgm_channel':
-        channel = Model_channel(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
-        trainer.fit(channel, datamodule)
-        best_model_path = checkpoint_callback.best_model_path
-        best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
-
-    elif config.my_model.name == 'perceiver': 
-        channel = Perceiver_channel(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
-        trainer.fit(channel, datamodule)
-        best_model_path = checkpoint_callback.best_model_path
-        best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
-
-    elif config.my_model.name == 'mlp_bottleneck': 
-        channel = MLP_Bottleneck(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
-        trainer.fit(channel, datamodule)
-        best_model_path = checkpoint_callback.best_model_path
-        best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
-
-    elif config.my_model.name == 'Knn_channel': 
-        channel = Knn_channel(hparams)
-        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
-        trainer.fit(channel, datamodule)
-        best_model_path = checkpoint_callback.best_model_path
-        best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
-
-
-    else:
-        print('Model not implemented. Check config file')
-
-
-    #channel = MLP_PCA(hparams)
-    # best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
-    #best_model = MLP_PCA.load_from_checkpoint(best_model_path, hparams=hparams)
     
-    return trainer, best_model, datamodule
+    return datamodule
+
+    # early_stopping_callback = EarlyStopping(
+    #     monitor=config.training.early_stopping.monitor,
+    #     patience=config.training.early_stopping.patience,
+    #     mode=config.training.early_stopping.mode,
+    #     verbose=True
+    # )
+
+    # checkpoint_callback = ModelCheckpoint(
+    #     monitor=config.training.early_stopping.monitor, 
+    #     filename='{epoch:02d}-{val_loss:.2f}',  
+    #     save_top_k=1,  
+    #     mode=config.training.early_stopping.mode, 
+    #     save_weights_only=True  
+    # )
+
+
+    # #wandb_logger = WandbLogger(project='imdb_new_dgm')
+    # # wandb_logger = WandbLogger(project='mine_vs_baseline_PROTEINS_nodgm')
+    # hparams = create_hyperparameters(config)
+    # #wandb_logger.log_hyperparams(hparams)
+
+    # if config.my_model.name == 'dgm_channel':
+    #     channel = Model_channel(hparams)
+    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
+    #     trainer.fit(channel, datamodule)
+    #     best_model_path = checkpoint_callback.best_model_path
+    #     best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+
+    # elif config.my_model.name == 'perceiver': 
+    #     channel = Perceiver_channel(hparams)
+    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
+    #     trainer.fit(channel, datamodule)
+    #     best_model_path = checkpoint_callback.best_model_path
+    #     best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    # elif config.my_model.name == 'mlp_bottleneck': 
+    #     channel = MLP_Bottleneck(hparams)
+    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
+    #     trainer.fit(channel, datamodule)
+    #     best_model_path = checkpoint_callback.best_model_path
+    #     best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    # elif config.my_model.name == 'Knn_channel': 
+    #     channel = Knn_channel(hparams)
+    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
+    #     trainer.fit(channel, datamodule)
+    #     best_model_path = checkpoint_callback.best_model_path
+    #     best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+
+    # else:
+    #     print('Model not implemented. Check config file')
+
+
+    # #channel = MLP_PCA(hparams)
+    # # best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+    # #best_model = MLP_PCA.load_from_checkpoint(best_model_path, hparams=hparams)
+    
+    # return trainer, best_model, datamodule
 
 
 
@@ -475,95 +478,13 @@ def compare_poolings_fixed_snr(config: DictConfig):
     print(f"Results saved to {save_dir}")
 
 
-# def plot_results_pool_per_ratio(results, snr_values, config):
-#     # Iterate over each pooling ratio
-#     for pool_ratio in config.exp.pooling_ratios:
-#         plt.figure(figsize=(10, 6))
-        
-#         # Iterate over each pooling method
-#         for pool_method in config.exp.pool_methods:
-#             accuracies = []
-#             std_devs = []
-
-#             # Collect accuracy and std dev for each SNR value for this pooling ratio
-#             for snr_value in snr_values:
-#                 if pool_method in results[snr_value] and pool_ratio in results[snr_value][pool_method]:
-#                     accuracies.append(results[snr_value][pool_method][pool_ratio]["accuracies"])
-#                     std_devs.append(results[snr_value][pool_method][pool_ratio]["std"])
-#                 else:
-#                     print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
-#                     accuracies.append(None)
-#                     std_devs.append(0)
-
-#             # Plot the accuracies with error bars for the current method
-#             plt.errorbar(snr_values, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
-
-#         # Customize each plot for the current pooling ratio
-#         plt.title(f"Accuracy vs SNR for Pooling Ratio: {pool_ratio}")
-#         plt.xlabel("SNR (dB)")
-#         plt.ylabel("Accuracy")
-#         plt.legend(title="Pooling Methods")
-#         plt.grid(True)
-#         plt.tight_layout()
-
-#         # Save the plot as a PNG file
-#         save_dir = "comparison_plots/imdb/with_noise/compare_poolings_ratio_plots"
-#         os.makedirs(save_dir, exist_ok=True)
-#         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
-#         plt.savefig(filename)
-#         plt.close()  # Close the plot to avoid overlap
-
-#         print(f"Plot saved to {filename}")
-
-
-
-# def plot_results_pool_per_snr(results, pooling_ratios, config):
-#     # Iterate over each SNR value in the results dictionary
-#     for snr_value in results:
-#         plt.figure(figsize=(10, 6))
-        
-#         # Iterate over each pooling method for the given SNR value
-#         for pool_method, pool_data in results[snr_value].items():
-#             accuracies = []
-#             std_devs = []
-
-#             # Extract accuracies and std deviations for each pooling ratio in the current method
-#             for pool_ratio in pooling_ratios:
-#                 if pool_ratio in pool_data:
-#                     accuracies.append(pool_data[pool_ratio]["accuracies"])
-#                     std_devs.append(pool_data[pool_ratio]["std"])
-#                 else:
-#                     print(f"No data found for pooling ratio: {pool_ratio} under method: {pool_method}")
-#                     accuracies.append(None)
-#                     std_devs.append(0)
-
-#             # Plot the accuracies with error bars for the current method
-#             plt.errorbar(pooling_ratios, accuracies, yerr=std_devs, label=f"{pool_method.upper()}", capsize=5, marker='o')
-
-#         # Customize each plot for the current SNR value
-#         plt.title(f"Accuracy vs Pooling Ratio for SNR: {snr_value} dB")
-#         plt.xlabel("Pooling Ratio")
-#         plt.ylabel("Accuracy")
-#         plt.legend(title="Pooling Methods")
-#         plt.grid(True)
-#         plt.tight_layout()
-
-#         # Save the plot as a PNG file
-#         save_dir = "comparison_plots/imdb/with_noise/compare_poolings_snr_plots"
-#         os.makedirs(save_dir, exist_ok=True)
-#         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
-#         plt.savefig(filename)
-#         plt.close()  # Close the plot to avoid overlap
-
-#         print(f"Plot saved to {filename}")
-
-
-# # ----- new style
 
 
 def plot_results_pool_per_snr(results, pooling_ratios, config):
     # Iterate over each SNR value in the results dictionary
-    for snr_value in results:
+
+    ylims = [(0.45, 0.76), (0.54, 0.755), (0.67, 0.755), (0.69, 0.755), (0.685, 0.755)]
+    for s, snr_value in enumerate(results):
         plt.figure(figsize=(10, 6))
         
         # Get the list of pooling methods for easy access
@@ -601,6 +522,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
             legend_labels.append(pool_method.upper())
 
         # Customize each plot for the current SNR value
+        # plt.ylim(ylims[s])
         plt.title(f"Accuracy vs Pooling Ratio for SNR: {snr_value} dB", fontsize=16)  # Increased font size
         plt.xlabel("Pooling Ratio", fontsize=16)  # Increased font size
         plt.ylabel("Accuracy", fontsize=16)  # Increased font size
@@ -623,8 +545,9 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         print(f"Plot saved to {filename}")
 
 def plot_results_pool_per_ratio(results, snr_values, config):
+    ylims = [(0.454, 0.76), (0.62, 0.76), (0.62, 0.76), (0.574, 0.75), (0.61, 0.75)]
     # Iterate over each pooling ratio
-    for pool_ratio in config.exp.pooling_ratios:
+    for p, pool_ratio in enumerate(config.exp.pooling_ratios):
         plt.figure(figsize=(10, 6))
         
         # Get the list of pooling methods for easy access
@@ -662,6 +585,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
             legend_labels.append(pool_method.upper())
 
         # Customize each plot for the current pooling ratio
+        # plt.ylim(ylims[p])
         plt.title(f"Accuracy vs SNR for Pooling Ratio: {pool_ratio}", fontsize=16)  # Increased font size
         plt.xlabel("SNR (dB)", fontsize=14)  # Increased font size
         plt.ylabel("Accuracy", fontsize=14)  # Increased font size
@@ -669,7 +593,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.yticks(fontsize=12)  # Increased tick size
         
         # Use the legend_lines and legend_labels to create the legend
-        plt.legend(legend_lines, legend_labels, title="Pooling Methods", fontsize=12)
+        plt.legend(legend_lines, legend_labels, fontsize=12)
         
         plt.grid(True)
         plt.tight_layout()
@@ -698,16 +622,20 @@ def plot_existing_res(config: DictConfig):
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_with_without_dgm(config: DictConfig):
 
-    results = {}
-    # ensure training with noise
+    results = { 'dgm': {}, 'no_dgm': {}}
+
+    results['dgm'] = load_results('with_noise_results.pkl')
+
     config.training.noisy = True
-    # loop over different pooling types (ASA, SAG, TopK)
-    for pooling_type in config.exp.pooling_type:
+    # ensure training with noise and with dgm
+    config.dgm.name = 'no_dgm'
+
+    # loop over different pooling types (ASA, SAG, TopK), train and evaluate without dgm
+    for pooling_type in config.exp.pool_methods:
         config.pooling.pooling_type = pooling_type
 
         for pooling_ratio in config.exp.pooling_ratios: 
             config.pooling.pooling_ratio = pooling_ratio 
-
 
             # Train the model from scratch for the current pooling type and ratio
             print(f"Training model with Pooling Method: {pooling_type}, Pooling Ratio: {pooling_ratio}")
@@ -718,26 +646,92 @@ def compare_with_without_dgm(config: DictConfig):
                 print(f"Validating with SNR: {snr_value} dB")
 
                 # Validate the model with the current SNR value
-                results = compare_poolings(config, trainer, snr_value, best_model, datamodule, pooling_type, pooling_ratio, results)
+                results['no_dgm'] = compare_poolings(config, trainer, snr_value, best_model, datamodule, pooling_type, pooling_ratio, results['no_dgm'])
 
 
-    
+    save_dir = "results_with_without_dgm/imdb"
+    os.makedirs(save_dir, exist_ok=True)
+    results_file = os.path.join(save_dir, "results.pkl")
+    save_results(results, results_file)
+
+    return results
 
 
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def plot_results_per_pooling_method(config):
+    results = load_results('results_with_without_dgm/imdb/results.pkl')
+    # Iterate over each pooling method (ASA, SAG, TopK, etc.)
+    for pool_method in config.exp.pool_methods:
+        # Iterate over each pooling ratio
+        for pool_ratio in config.exp.pooling_ratios:
+            plt.figure(figsize=(10, 6))
 
+            # Store line styles and labels for the legend
+            legend_lines = []
+            legend_labels = []
 
+            accuracies_with_dgm = []
+            std_devs_with_dgm = []
+            accuracies_without_dgm = []
+            std_devs_without_dgm = []
 
+            # Collect accuracy and std dev for each SNR value for this pooling ratio
+            for snr_value in config.exp.snr_values:
+                # Collect data for DGM
+                if pool_method in results['dgm'][snr_value] and pool_ratio in results['dgm'][snr_value][pool_method]:
+                    accuracies_with_dgm.append(results['dgm'][snr_value][pool_method][pool_ratio]["accuracies"])
+                    std_devs_with_dgm.append(results['dgm'][snr_value][pool_method][pool_ratio]["std"])
+                else:
+                    accuracies_with_dgm.append(None)
+                    std_devs_with_dgm.append(0)
 
+                # Collect data for no DGM
+                if pool_method in results['no_dgm'][snr_value] and pool_ratio in results['no_dgm'][snr_value][pool_method]:
+                    accuracies_without_dgm.append(results['no_dgm'][snr_value][pool_method][pool_ratio]["accuracies"])
+                    std_devs_without_dgm.append(results['no_dgm'][snr_value][pool_method][pool_ratio]["std"])
+                else:
+                    accuracies_without_dgm.append(None)
+                    std_devs_without_dgm.append(0)
 
+            # Plotting DGM results
+            line_with_dgm, _, _ = plt.errorbar(
+                config.exp.snr_values, accuracies_with_dgm, yerr=std_devs_with_dgm, label=f"DGM", 
+                capsize=5, marker='o', linestyle='-', linewidth=2.5, alpha=0.7
+            )
+            # Plotting no DGM results
+            line_without_dgm, _, _ = plt.errorbar(
+                config.exp.snr_values, accuracies_without_dgm, yerr=std_devs_without_dgm, label=f"No DGM", 
+                capsize=5, marker='s', linestyle='--', linewidth=2.5, alpha=0.7
+            )
+            plt.ylim(0.45, 0.76)
+            # Append Line2D object and label for legend
+            legend_lines.append(Line2D([0], [0], color=line_with_dgm.get_color(), linestyle='-', linewidth=2.5))
+            legend_labels.append(f"DGM")
+            legend_lines.append(Line2D([0], [0], color=line_without_dgm.get_color(), linestyle='--', linewidth=2.5))
+            legend_labels.append(f"No DGM")
 
+            # Customize each plot for the current pooling method and ratio
+            plt.title(f"Accuracy vs SNR for {pool_method.upper()} Pooling Ratio: {pool_ratio}", fontsize=16)
+            plt.xlabel("SNR (dB)", fontsize=14)
+            plt.ylabel("Accuracy", fontsize=14)
+            plt.xticks(config.exp.snr_values, fontsize=12)
+            plt.yticks(fontsize=12)
 
+            # Use the legend_lines and legend_labels to create the legend
+            plt.legend(legend_lines, legend_labels, title="Model", fontsize=12)
 
+            # Add grid and layout
+            plt.grid(True)
+            plt.tight_layout()
 
+            # Save the plot as a PNG file
+            save_dir = f"comparison_plots/imdb/with_without_dgm/{pool_method}"
+            os.makedirs(save_dir, exist_ok=True)
+            filename = os.path.join(save_dir, f"accuracy_vs_snr_{pool_method}_ratio_{pool_ratio}.png")
+            plt.savefig(filename)
+            plt.close()  # Close the plot to avoid overlap
 
-
-
-
-
+            print(f"Plot saved to {filename}")
 
 
 
@@ -750,7 +744,11 @@ def compare_with_without_dgm(config: DictConfig):
 if __name__ == "__main__":
 
     #train_and_plot()
-    # setup_training()
+    setup_training()
     #train_and_plot_comparison()
-    compare_poolings_fixed_snr()
+    # compare_poolings_fixed_snr()
     # plot_existing_res()
+    # compare_with_without_dgm()
+    # compare_with_without_dgm()
+    # plot_results_per_pooling_method()
+    

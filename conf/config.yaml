@@ -1,5 +1,5 @@
 defaults:
-  - dataset: imdb_binary
+  - dataset: mnist
   - my_model: model_config
   - dgm: topk_dgm_conf
   - pooling: topk_conf

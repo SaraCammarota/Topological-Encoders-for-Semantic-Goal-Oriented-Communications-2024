@@ -16,12 +16,11 @@ import torch
 from sklearn.model_selection import StratifiedKFold
 import torch_geometric
 from collections import defaultdict
-
+import torchvision 
 from typing import Any
-
+from torchvision import transforms
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
-
 
 class DataloadDataset(torch_geometric.data.Dataset):
     """Custom dataset to return all the values added to the dataset object.
@@ -261,9 +260,9 @@ class GraphLoader(AbstractLoader):
             data_dir = root_data_dir      
 
         elif self.parameters.data_name in MNIST:
-            dataset = torch_geometric.datasets.MNISTSuperpixels(root="data/MNISTSuperpixels", train=True)
-                        #torch_geometric.datasets.MNISTSuperpixels(root="data/MNISTSuperpixels", train=False)] 
-
+            
+            # Load the MNIST dataset (only train set)
+            dataset = torch_geometric.datasets.MNISTSuperpixels(root='data', train=True)
 
 
         elif self.parameters.data_name in HETEROPHILIC_DATASETS:
@@ -662,6 +661,8 @@ class PreProcessor(torch_geometric.data.InMemoryDataset):
             data_list = [dataset[idx] for idx in range(len(dataset))]
         elif isinstance(dataset, torch_geometric.data.Data):
             data_list = [dataset]
+        elif isinstance(dataset, torch_geometric.datasets.mnist_superpixels.MNISTSuperpixels): 
+            data_list = dataset
         self.data_list = data_list
         self.transforms_applied = False
         super().__init__(data_dir, None, None, **kwargs)
@@ -805,6 +806,7 @@ class PreProcessor(torch_geometric.data.InMemoryDataset):
             raise ValueError("No learning setting specified in split_params")
 
         if split_params.learning_setting == "inductive":
+
             return load_inductive_splits(self, split_params)
         elif split_params.learning_setting == "transductive":
             return load_transductive_splits(self, split_params)
@@ -813,224 +815,6 @@ class PreProcessor(torch_geometric.data.InMemoryDataset):
                 f"Invalid '{split_params.learning_setting}' learning setting.\
                 Please define either 'inductive' or 'transductive'."
             )
-
-
-
-# class GraphLoader(AbstractLoader):
-#     def __init__(self, parameters):
-#         super().__init__()
-#         self.parameters = parameters
-#         # Still not instantiated
-
-#     def load(self):
-#         data_dir = os.path.join(
-#             self.parameters["data_dir"], self.parameters["data_name"]
-#         )
-
-
-
-# # could add QM9 dataset https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.QM9.html
-
-#         if self.parameters["data_name"] in [
-#             "MUTAG",
-#             "ENZYMES",
-#             "PROTEINS",
-#             #"COLLAB",
-#             #"IMDB-BINARY",
-#             #"IMDB-MULTI",
-#             "REDDIT-BINARY",
-#             "NCI1",
-#             "NCI109",
-
-#         ]:
-
-
-#             dataset = torch_geometric.datasets.TUDataset(
-#                 root=self.parameters["data_dir"],
-#                 name=self.parameters["data_name"],
-#                 use_node_attr=False,
-                
-#             )
-
-
-#             dataset = load_graph_tudataset_split(dataset, self.parameters)
-
-#             return dataset
-
-#         elif self.parameters["data_name"] in ["CORA"]:
-
-#             dataset = torch_geometric.datasets.Planetoid(
-#                 root=self.parameters["data_dir"],
-#                 name=self.parameters["data_name"],
-                
-#             )[0]
-
-#             split_idx = {"train": np.array(np.where(dataset.train_mask.bool()==1))[0]}
-#             split_idx["validation"] = np.array(np.where(dataset.val_mask.bool()==1))[0]
-#             split_idx["test"] = np.array(np.where(dataset.test_mask.bool()==1))[0]
-
-
-
-#         elif self.parameters["data_name"] in ["ZINC"]:
-#             datasets = []
-#             for split in ["train", "val", "test"]:
-#                 datasets.append(
-#                     torch_geometric.datasets.ZINC(
-#                         root=self.parameters["data_dir"],
-#                         subset=True,
-#                         split=split,
-#                     )
-#                 )
-
-#             assert self.parameters["split_type"] == "fixed"
-#             # The splits are predefined
-#             # Extract and prepare split_idx
-#             split_idx = {"train": np.arange(len(datasets[0]))}
-
-#             split_idx["valid"] = np.arange(
-#                 len(datasets[0]), len(datasets[0]) + len(datasets[1])
-#             )
-
-#             split_idx["test"] = np.arange(
-#                 len(datasets[0]) + len(datasets[1]),
-#                 len(datasets[0]) + len(datasets[1]) + len(datasets[2]),
-#             )
-
-#             # Join dataset to process it
-#             joined_dataset = datasets[0] + datasets[1] + datasets[2]
-
-#             # if self.transforms_config is not None:
-#             #     joined_dataset = Preprocessor(
-#             #         data_dir,
-#             #         joined_dataset,
-#             #         self.transforms_config,
-#             #     )
-
-#             # Split back the into train/val/test datasets
-#             dataset = get_train_val_test_graph_datasets(joined_dataset, split_idx)
-
-#         elif self.parameters["data_name"] in ["AQSOL"]:
-#             datasets = []
-#             for split in ["train", "val", "test"]:
-#                 datasets.append(
-#                     torch_geometric.datasets.AQSOL(
-#                         root=self.parameters["data_dir"],
-#                         split=split,
-#                     )
-#                 )
-#             # The splits are predefined
-#             # Extract and prepare split_idx
-#             split_idx = {"train": np.arange(len(datasets[0]))}
-
-#             split_idx["valid"] = np.arange(
-#                 len(datasets[0]), len(datasets[0]) + len(datasets[1])
-#             )
-
-#             split_idx["test"] = np.arange(
-#                 len(datasets[0]) + len(datasets[1]),
-#                 len(datasets[0]) + len(datasets[1]) + len(datasets[2]),
-#             )
-
-#             # Join dataset to process it
-#             joined_dataset = datasets[0] + datasets[1] + datasets[2]
-
-#             # if self.transforms_config is not None:
-#             #     joined_dataset = Preprocessor(
-#             #         data_dir,
-#             #         joined_dataset,
-#             #         self.transforms_config,
-#             #     )
-
-#             # Split back the into train/val/test datasets
-#             dataset = get_train_val_test_graph_datasets(joined_dataset, split_idx)
-#         else:
-#             raise NotImplementedError(
-#                 f"Dataset {self.parameters['data_name']} not implemented"
-#             )
-
-#         return dataset
-
-# def k_fold_split(dataset, parameters, test_ratio = 0.2, ignore_negative=True):
-#     """
-#     Returns train and valid indices as in K-Fold Cross-Validation. If the split already exists it loads it automatically, otherwise it creates the split file for the subsequent runs.
-
-#     :param dataset: Dataset object containing either one or multiple graphs
-#     :param data_dir: The directory where the data is stored, it will be used to store the splits
-#     :param parameters: DictConfig containing the parameters for the dataset
-#     :param ignore_negative: If True the function ignores negative labels. Default True.
-#     :return split_idx: A dictionary containing "train" and "valid" tensors with the respective indices.
-#     """
-#     data_dir = parameters.data_split_dir
-#     k = parameters.k
-#     fold = parameters.data_seed
-#     assert fold < k, "data_seed needs to be less than k"
-
-#     torch.manual_seed(0)
-#     np.random.seed(0)
-
-#     split_dir = os.path.join(data_dir, f"{k}-fold")
-#     if not os.path.isdir(split_dir):
-#         os.makedirs(split_dir)
-#     split_path = os.path.join(split_dir, f"{fold}.npz")
-#     if os.path.isfile(split_path):
-#         split_idx = np.load(split_path)
-#         return split_idx
-#     else:
-#         if parameters.task_level == "graph":
-#             labels = dataset.y
-
-#         # need to look into this more
-#         else:
-#             if len(dataset) == 1:
-#                 labels = dataset.y
-#             else:
-#                 # This is the case of node level task with multiple graphs
-#                 # Here dataset.y cannot be used to measure the number of elements to associate to the splits
-#                 labels = torch.ones(len(dataset))
-
-#         if ignore_negative:
-#             labeled_nodes = torch.where(labels != -1)[0]
-#         else:
-#             labeled_nodes = labels
-
-#         n = labeled_nodes.shape[0]
-
-#         #when is the len == 1?
-#         if len(dataset) == 1:
-#             y = dataset[0].y.squeeze(0).numpy()
-#         else:
-#             y = np.array([data.y.squeeze(0).numpy() for data in dataset])
-
-#         x_idx = np.arange(n)
-#         x_idx = np.random.permutation(x_idx)
-#         y = y[x_idx]
-
-#         #Set aside test set
-#         num_test = int(test_ratio*n)
-#         x_idx_test = x_idx[:num_test]
-
-#         y_train_val = y[num_test:]
-
-#         #y_test = y[test_ratio*n:]
-#         x_train_val = x_idx[num_test:]
-
-
-#         skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
-
-#         for fold_n, (train_idx, valid_idx) in enumerate(skf.split(x_train_val, y_train_val)):
-
-#             # Convert relative indices to original indices
-#             train_indices = x_train_val[train_idx]
-#             valid_indices = x_train_val[valid_idx]
-
-#             split_idx = {"train": train_indices, "valid": valid_indices, "test": x_idx_test}
-
-#             assert np.all(np.sort(np.concatenate([train_indices, valid_indices])) == np.sort(x_train_val)), "Not every sample has been loaded."
-
-#             split_path = os.path.join(split_dir, f"{fold_n}.npz")
-#             np.savez(split_path, **split_idx)
-
-#         return split_idx
 
 
 
