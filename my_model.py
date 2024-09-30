@@ -95,7 +95,7 @@ class Model_channel(pl.LightningModule):
         elif hparams["skip_connection"] == False: 
             self.skip = None
 
-        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])    # TODO MLP or GNN?
+        self.receiver = MLP(hparams['receiver_layers'], dropout= hparams["dropout"])   
 
     def forward(self, data):
         '''
