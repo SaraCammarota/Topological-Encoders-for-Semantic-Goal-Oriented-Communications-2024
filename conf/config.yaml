@@ -4,7 +4,7 @@ defaults:
   - dgm: new_dgm_conf
   - pooling: topk_conf
   - training: train_conf
-  - exp: dgm_no_dgm
+  - exp: compare_poolings
   - paths: default
 
 

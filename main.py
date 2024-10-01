@@ -735,7 +735,95 @@ def plot_results_per_pooling_method(config):
             print(f"Plot saved to {filename}")
 
 
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def plot_results_comparison(config):
+    """
+    Generates and saves plots for different pooling methods and pooling ratios, comparing with and without noise data.
+    
+    Args:
+        with_noise_results: Results with noise.
+        without_noise_results: Results without noise.
+        snr_values: A list of SNR values.
+        config: The configuration object that contains pool methods and ratios.
+    """
+    with_noise_results = load_results('with_noise_results.pkl')
+    without_noise_results = load_results('without_noise_results.pkl')
+    print(with_noise_results)
+    snr_values = config.exp.snr_values 
+    # Define styles and figure settings
+    line_styles = ['-', '--']  # Solid for without noise, dashed for with noise
+    ylims = [(0.454, 0.76), (0.62, 0.76), (0.62, 0.76), (0.574, 0.75), (0.61, 0.75)]
+    
+    # Get the list of pooling methods and ratios
+    pool_methods = config.exp.pool_methods
+    pooling_ratios = config.exp.pooling_ratios
+    
+    # Loop over each pooling ratio and method
+    for p, pool_ratio in enumerate(pooling_ratios):
+        for idx, pool_method in enumerate(pool_methods):
+            plt.figure(figsize=(10, 6))  # Create a new figure for each combination
 
+            # Initialize lists for accuracies and std deviations for both conditions
+            accuracies_with_noise, std_devs_with_noise = [], []
+            accuracies_without_noise, std_devs_without_noise = [], []
+
+            # Collect accuracy and std dev for each SNR value for both conditions
+            for snr_value in snr_values:
+                # With noise
+                if pool_method in with_noise_results[snr_value] and pool_ratio in with_noise_results[snr_value][pool_method]:
+                    accuracies_with_noise.append(with_noise_results[snr_value][pool_method][pool_ratio]["accuracies"])
+                    std_devs_with_noise.append(with_noise_results[snr_value][pool_method][pool_ratio]["std"])
+                else:
+                    print(f"No data found (with noise) for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
+                    accuracies_with_noise.append(None)
+                    std_devs_with_noise.append(0)
+
+                # Without noise
+                if pool_method in without_noise_results[snr_value] and pool_ratio in without_noise_results[snr_value][pool_method]:
+                    accuracies_without_noise.append(without_noise_results[snr_value][pool_method][pool_ratio]["accuracies"])
+                    std_devs_without_noise.append(without_noise_results[snr_value][pool_method][pool_ratio]["std"])
+                else:
+                    print(f"No data found (without noise) for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
+                    accuracies_without_noise.append(None)
+                    std_devs_without_noise.append(0)
+
+            # Plot with noise
+            line_with_noise, _, _ = plt.errorbar(
+                snr_values, accuracies_with_noise, yerr=std_devs_with_noise, label=f"{pool_method.upper()} (With Noise)", 
+                capsize=5, marker='o', linestyle=line_styles[1],  # Dashed line for with noise
+                linewidth=2.5, alpha=0.7  # Match style with opacity and line thickness
+            )
+            
+            # Plot without noise
+            line_without_noise, _, _ = plt.errorbar(
+                snr_values, accuracies_without_noise, yerr=std_devs_without_noise, label=f"{pool_method.upper()} (Without Noise)", 
+                capsize=5, marker='o', linestyle=line_styles[0],  # Solid line for without noise
+                linewidth=2.5, alpha=0.7
+            )
+            
+            # Set the limits for the y-axis dynamically if needed
+            # plt.ylim(ylims[p])
+
+            # Title and labels with increased font size
+            plt.title(f"Accuracy vs SNR for Pooling Ratio: {pool_ratio}, Method: {pool_method.upper()}", fontsize=16)
+            plt.xlabel("SNR (dB)", fontsize=14)
+            plt.ylabel("Accuracy", fontsize=14)
+            plt.xticks(fontsize=12)
+            plt.yticks(fontsize=12)
+            
+            # Add legend
+            plt.legend(fontsize=12)
+            plt.grid(True)
+            plt.tight_layout()
+
+            # Save the plot for this specific combination of ratio and method
+            save_dir = f"new_dgm/comparison_plots/imdb/with_without_dgm/compare_poolings_ratio_plots"
+            os.makedirs(save_dir, exist_ok=True)
+            filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}_method_{pool_method}.png")
+            plt.savefig(filename)
+            plt.close()  # Close the plot to avoid memory issues
+
+            print(f"Plot saved to {filename}")
 
 
 
@@ -751,5 +839,6 @@ if __name__ == "__main__":
     # plot_existing_res()
     # compare_with_without_dgm()
     # compare_with_without_dgm()
-    plot_results_per_pooling_method()
+    # plot_results_per_pooling_method()
+    plot_results_comparison()
     
