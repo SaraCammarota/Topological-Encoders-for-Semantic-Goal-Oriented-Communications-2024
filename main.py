@@ -37,72 +37,69 @@ def setup_training(config):
     preprocessor = PreProcessor(dataset, dataset_dir, transform_config)
     train_data, validation_data, test_data = preprocessor.load_dataset_splits(config.dataset.split_params)
 
-    print(train_data[0].y)
-
     datamodule = TBXDataloader(train_data, validation_data, test_data, batch_size=config.dataset.dataloader_params.batch_size,
                                num_workers=config.dataset.dataloader_params.num_workers)
+
+
+    early_stopping_callback = EarlyStopping(
+        monitor=config.training.early_stopping.monitor,
+        patience=config.training.early_stopping.patience,
+        mode=config.training.early_stopping.mode,
+        verbose=True
+    )
+
+    checkpoint_callback = ModelCheckpoint(
+        monitor=config.training.early_stopping.monitor, 
+        filename='{epoch:02d}-{val_loss:.2f}',  
+        save_top_k=1,  
+        mode=config.training.early_stopping.mode, 
+        save_weights_only=True  
+    )
+
+
+    #wandb_logger = WandbLogger(project='imdb_new_dgm')
+    # wandb_logger = WandbLogger(project='mine_vs_baseline_PROTEINS_nodgm')
+    hparams = create_hyperparameters(config)
+    #wandb_logger.log_hyperparams(hparams)
+
+    if config.my_model.name == 'dgm_channel':
+        channel = Model_channel(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+
+    elif config.my_model.name == 'perceiver': 
+        channel = Perceiver_channel(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    elif config.my_model.name == 'mlp_bottleneck': 
+        channel = MLP_Bottleneck(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    elif config.my_model.name == 'Knn_channel': 
+        channel = Knn_channel(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+
+    else:
+        print('Model not implemented. Check config file')
+
+
+    #channel = MLP_PCA(hparams)
+    # best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+    #best_model = MLP_PCA.load_from_checkpoint(best_model_path, hparams=hparams)
     
-    return datamodule
-
-    # early_stopping_callback = EarlyStopping(
-    #     monitor=config.training.early_stopping.monitor,
-    #     patience=config.training.early_stopping.patience,
-    #     mode=config.training.early_stopping.mode,
-    #     verbose=True
-    # )
-
-    # checkpoint_callback = ModelCheckpoint(
-    #     monitor=config.training.early_stopping.monitor, 
-    #     filename='{epoch:02d}-{val_loss:.2f}',  
-    #     save_top_k=1,  
-    #     mode=config.training.early_stopping.mode, 
-    #     save_weights_only=True  
-    # )
-
-
-    # #wandb_logger = WandbLogger(project='imdb_new_dgm')
-    # # wandb_logger = WandbLogger(project='mine_vs_baseline_PROTEINS_nodgm')
-    # hparams = create_hyperparameters(config)
-    # #wandb_logger.log_hyperparams(hparams)
-
-    # if config.my_model.name == 'dgm_channel':
-    #     channel = Model_channel(hparams)
-    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
-    #     trainer.fit(channel, datamodule)
-    #     best_model_path = checkpoint_callback.best_model_path
-    #     best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
-
-    # elif config.my_model.name == 'perceiver': 
-    #     channel = Perceiver_channel(hparams)
-    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
-    #     trainer.fit(channel, datamodule)
-    #     best_model_path = checkpoint_callback.best_model_path
-    #     best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
-
-    # elif config.my_model.name == 'mlp_bottleneck': 
-    #     channel = MLP_Bottleneck(hparams)
-    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
-    #     trainer.fit(channel, datamodule)
-    #     best_model_path = checkpoint_callback.best_model_path
-    #     best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
-
-    # elif config.my_model.name == 'Knn_channel': 
-    #     channel = Knn_channel(hparams)
-    #     trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
-    #     trainer.fit(channel, datamodule)
-    #     best_model_path = checkpoint_callback.best_model_path
-    #     best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
-
-
-    # else:
-    #     print('Model not implemented. Check config file')
-
-
-    # #channel = MLP_PCA(hparams)
-    # # best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
-    # #best_model = MLP_PCA.load_from_checkpoint(best_model_path, hparams=hparams)
-    
-    # return trainer, best_model, datamodule
+    return trainer, best_model, datamodule
 
 
 
@@ -400,6 +397,7 @@ def save_results(results, filename):
 
 def load_results(filename):
     if os.path.exists(filename):
+        print('ao')
         with open(filename, 'rb') as f:
             results = pickle.load(f)
         print(f"Results loaded from {filename}")
@@ -437,7 +435,7 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_poolings_fixed_snr(config: DictConfig):
-    save_dir = "results_poolings_snrs_without_noise/imdb"
+    save_dir = "new_dgm/results_poolings_snrs_without_noise/imdb"
     os.makedirs(save_dir, exist_ok=True)
     results_file = os.path.join(save_dir, "results.pkl")
 
@@ -536,7 +534,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/imdb/without_noise/compare_poolings_snr_plots"
+        save_dir = "new_dgm/comparison_plots/imdb/with_without_dgm/compare_poolings_snr_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
         plt.savefig(filename)
@@ -599,7 +597,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "comparison_plots/imdb/without_noise/compare_poolings_ratio_plots"
+        save_dir = "new_dgm/comparison_plots/imdb/with_without_dgm/compare_poolings_ratio_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
         plt.savefig(filename)
@@ -612,7 +610,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def plot_existing_res(config: DictConfig):
-    filename = 'without_noise_results.pkl'
+    filename = 'results_with_without_dgm/imdb\results.pkl'
     results = load_results(filename)
     plot_results_pool_per_snr(results, config.exp.pooling_ratios, config)
     plot_results_pool_per_ratio(results, config.exp.snr_values, config)
@@ -624,7 +622,7 @@ def compare_with_without_dgm(config: DictConfig):
 
     results = { 'dgm': {}, 'no_dgm': {}}
 
-    results['dgm'] = load_results('with_noise_results.pkl')
+    results['dgm'] = load_results('new_dgm\results_poolings_snrs_with_noise\imdb\results.pkl')
 
     config.training.noisy = True
     # ensure training with noise and with dgm
@@ -743,11 +741,11 @@ def plot_results_per_pooling_method(config):
 
 if __name__ == "__main__":
 
-    #train_and_plot()
-    setup_training()
-    #train_and_plot_comparison()
+    
+    # setup_training()
+    
     # compare_poolings_fixed_snr()
-    # plot_existing_res()
+    plot_existing_res()
     # compare_with_without_dgm()
     # compare_with_without_dgm()
     # plot_results_per_pooling_method()

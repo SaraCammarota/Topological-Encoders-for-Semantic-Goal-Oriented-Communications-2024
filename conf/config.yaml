@@ -1,10 +1,10 @@
 defaults:
-  - dataset: mnist
+  - dataset: imdb_binary
   - my_model: model_config
-  - dgm: topk_dgm_conf
+  - dgm: new_dgm_conf
   - pooling: topk_conf
   - training: train_conf
-  - exp: compare_poolings
+  - exp: dgm_no_dgm
   - paths: default
 
 

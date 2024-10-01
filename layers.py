@@ -298,8 +298,6 @@ class DGM_d(nn.Module):
 
 
 class DGM_c(nn.Module):
-    
-    input_dim = 32
 
     def __init__(self, embed_f, k=None, distance="euclidean"):
         super(DGM_c, self).__init__()
@@ -336,6 +334,93 @@ class DGM_c(nn.Module):
 #         self.A=A
 #         A = A/A.sum(-1,keepdim=True)
         return x, edge_index, edge_weight
+
+
+class DGM_Lev(nn.Module):
+
+    def __init__(self, embed_f, k=None, distance="euclidean"):
+        super(DGM_Lev, self).__init__()
+        self.temperature = torch.nn.Parameter(torch.Tensor([0.1]))
+        self.eps = 1e-6
+
+
+        self.threshold = nn.Parameter(torch.tensor(0.5).float())
+        self.embed_f = embed_f
+        self.centroid=None
+        self.scale=None
+        self.distance = distance
+        
+        
+    def forward(self, x, A, not_used=None, fixedges=None):
+        
+        x = self.embed_f(x,A)  
+        dist_mat = torch.sum((x - x.unsqueeze(1)) **2, dim = -1) + self.eps 
+        probs = torch.exp(-self.temperature * dist_mat)
+        probs = torch.triu(probs, diagonal=1)
+        probs = torch.cat([probs.unsqueeze(-1), (1 - probs).unsqueeze(-1)], dim=-1)
+
+        logits = torch.log(probs + self.eps)
+        A = torch.nn.functional.gumbel_softmax(logits + self.eps, tau=self.temperature, hard=True, dim= -1)[:,:, 0]
+        A = (torch.triu(A, diagonal=1) + torch.triu(A, diagonal=1).T) #A + A.T
+        a_shape = A.shape[0]
+        diag = torch.eye(a_shape).type_as(A)
+        ones = torch.ones(a_shape).type_as(A)
+        A = A * (ones - diag) + diag
+
+        edge_index, edge_weight = dense_to_sparse(A)
+  
+        return x, edge_index, edge_weight
+
+
+class DGM_Lev_batch(nn.Module):
+    
+    def __init__(self, dgm_c: DGM_c):
+        super(DGM_Lev_batch, self).__init__()
+        self.dgm_c = dgm_c  # DGM_c for one graph
+
+    def forward(self, x, edge_index, batch):
+        """
+        Forward pass for batched graphs.
+        x: Node features [num_nodes, feature_dim]
+        edge_index: Edge index [2, num_edges]
+        batch: Batch tensor that indicates which graph each node belongs to
+        """
+        num_nodes = x.size(0)  # Total number of nodes
+        num_graphs = batch.max().item() + 1  # Number of graphs in the batch
+        
+        x_list = []
+        edge_index_list = []
+        edge_weight_list = []
+        node_offset = 0
+        
+        for graph_id in range(num_graphs):
+           
+            graph_mask = (batch == graph_id)
+            x_graph = x[graph_mask]  
+            
+            
+            edge_mask = (batch[edge_index[0]] == graph_id) & (batch[edge_index[1]] == graph_id)
+            edge_index_graph = edge_index[:, edge_mask] - node_offset  
+
+            x_graph, edge_index_graph, edge_weight_graph = self.dgm_c(x_graph, edge_index_graph)
+
+            # Adjust edge indices to the global batch space
+            edge_index_graph = edge_index_graph + node_offset
+            
+            # Append results
+            x_list.append(x_graph)
+            edge_index_list.append(edge_index_graph)
+            edge_weight_list.append(edge_weight_graph)
+
+            # Update node offset for the next graph
+            node_offset += graph_mask.sum().item()
+
+        # Concatenate results from all graphs
+        x_batch = torch.cat(x_list, dim=0)
+        edge_index_batch = torch.cat(edge_index_list, dim=1)
+        edge_weight_batch = torch.cat(edge_weight_list, dim=0)
+
+        return x_batch, edge_index_batch, edge_weight_batch
 
 
 

@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torchmetrics import Accuracy
 from torch_geometric.nn import global_mean_pool
 import pytorch_lightning as pl
-from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, DGM_c, DGM_c_batch
+from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, DGM_c, DGM_c_batch, DGM_Lev_batch, DGM_Lev
 from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 import hydra
 from omegaconf import DictConfig
@@ -67,6 +67,20 @@ class Model_channel(pl.LightningModule):
 
             ))
 
+        elif hparams["use_gcn"] and (hparams["dgm_name"] == 'new_dgm'):
+            self.graph_f = DGM_Lev_batch(DGM_Lev(
+                GNN(hparams["dgm_layers"], dropout=hparams["dropout"]),
+                k=hparams["k"],
+                distance=hparams["distance"],
+            ))
+        elif (not hparams["use_gcn"]) and (hparams["dgm_name"] == 'new_dgm') :
+            self.graph_f = DGM_Lev_batch(DGM_Lev(
+                MLP(hparams["dgm_layers"], dropout=hparams["dropout"]),
+                k=hparams["k"],
+                distance=hparams["distance"],
+
+            ))
+
         # elif hparams["dgm_name"] == 'no_dgm':
         #     self.graph_f = GNN(hparams["dgm_layers"], dropout=hparams["dropout"])
 
@@ -101,6 +115,7 @@ class Model_channel(pl.LightningModule):
         '''
         data: a batch of data. Must have attributes: x, batch, ptr
         '''
+
         x = data.x.detach()
         batch = data.batch_0
         ptr = data.ptr
@@ -126,6 +141,10 @@ class Model_channel(pl.LightningModule):
             ne_probs = None
             x = self.gnn(x, edges)
 
+        elif self.dgm_name == 'new_dgm': 
+
+            x_aux, edges, edge_weights = self.graph_f(x, data["edge_index"], batch) 
+            x = self.gnn(x, edges, edge_weights)
 
         # # FEATURE EXTRACTION -- moved above
         # x = self.gnn(x, edges, edge_weights)
