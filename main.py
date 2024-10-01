@@ -748,7 +748,6 @@ def plot_results_comparison(config):
     """
     with_noise_results = load_results('with_noise_results.pkl')
     without_noise_results = load_results('without_noise_results.pkl')
-    print(with_noise_results)
     snr_values = config.exp.snr_values 
     # Define styles and figure settings
     line_styles = ['-', '--']  # Solid for without noise, dashed for with noise
@@ -825,8 +824,76 @@ def plot_results_comparison(config):
 
             print(f"Plot saved to {filename}")
 
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def plot_gap_comparison_for_methods(config):
+    """
+    Generates bar charts to compare the accuracy gap across different methods for each pooling ratio.
+    Each bar represents a method, and the height corresponds to the accuracy gap for a given SNR.
+    
+    Args:
+        with_noise_results: Results with noise.
+        without_noise_results: Results without noise.
+        snr_values: A list of SNR values.
+        config: The configuration object containing pool methods and ratios.
+    """
+    with_noise_results = load_results('with_noise_results.pkl')
+    without_noise_results = load_results('without_noise_results.pkl')
+    snr_values = config.exp.snr_values 
+    # Get pooling methods and ratios from the config
+    pool_methods = config.exp.pool_methods
+    pooling_ratios = config.exp.pooling_ratios
+    
+    # Define bar width and positions
+    bar_width = 0.15  # Width of each bar
+    n_methods = len(pool_methods)
+    
+    # Loop over each pooling ratio
+    for pool_ratio in pooling_ratios:
+        plt.figure(figsize=(12, 6))  # Create a new figure for each pooling ratio
 
+        # Store the bar positions for each method for a given SNR value
+        indices = np.arange(len(snr_values))  # Number of bars (one per SNR)
 
+        # For each pooling method, calculate the gap and plot the bars
+        for idx, pool_method in enumerate(pool_methods):
+            accuracy_gaps = []
+
+            # Collect the accuracy gap for each SNR
+            for snr_value in snr_values:
+                if (pool_method in with_noise_results[snr_value] and pool_ratio in with_noise_results[snr_value][pool_method]
+                    and pool_method in without_noise_results[snr_value] and pool_ratio in without_noise_results[snr_value][pool_method]):
+                    
+                    accuracy_with_noise = with_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
+                    accuracy_without_noise = without_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
+
+                    # Calculate the accuracy gap
+                    accuracy_gap = accuracy_with_noise - accuracy_without_noise
+                    accuracy_gaps.append(accuracy_gap)
+                else:
+                    print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
+                    accuracy_gaps.append(0)  # Assign zero if data not available
+
+            # Plot the bars for the current pooling method
+            plt.bar(indices + idx * bar_width, accuracy_gaps, bar_width, label=pool_method.upper())
+
+        # Customize the plot
+        plt.title(f"Accuracy Gap Comparison for Pooling Ratio: {pool_ratio}", fontsize=16)
+        plt.xlabel("SNR (dB)", fontsize=14)
+        plt.ylabel("Accuracy Gap (With Noise - Without Noise)", fontsize=14)
+        plt.xticks(indices + bar_width * (n_methods - 1) / 2, snr_values, fontsize=12)  # Center ticks between bars
+        plt.yticks(fontsize=12)
+        plt.legend(fontsize=12)
+        plt.grid(True, axis='y')
+
+        # Save the plot
+        save_dir = f"new_dgm/comparison_plots/imdb/gap_comparison_plots"
+        os.makedirs(save_dir, exist_ok=True)
+        filename = os.path.join(save_dir, f"gap_comparison_ratio_{pool_ratio}.png")
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
+
+        print(f"Gap comparison plot saved to {filename}")
 
 
 
@@ -840,5 +907,6 @@ if __name__ == "__main__":
     # compare_with_without_dgm()
     # compare_with_without_dgm()
     # plot_results_per_pooling_method()
-    plot_results_comparison()
+    # plot_results_comparison()
+    plot_gap_comparison_for_methods()
     
