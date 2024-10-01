@@ -397,7 +397,6 @@ def save_results(results, filename):
 
 def load_results(filename):
     if os.path.exists(filename):
-        print('ao')
         with open(filename, 'rb') as f:
             results = pickle.load(f)
         print(f"Results loaded from {filename}")
@@ -610,8 +609,9 @@ def plot_results_pool_per_ratio(results, snr_values, config):
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def plot_existing_res(config: DictConfig):
-    filename = 'results_with_without_dgm/imdb\results.pkl'
+    filename = 'results_with_without_dgm/imdb/results.pkl'
     results = load_results(filename)
+    results['dgm'] = load_results('results.pkl')
     plot_results_pool_per_snr(results, config.exp.pooling_ratios, config)
     plot_results_pool_per_ratio(results, config.exp.snr_values, config)
 
@@ -657,7 +657,10 @@ def compare_with_without_dgm(config: DictConfig):
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def plot_results_per_pooling_method(config):
-    results = load_results('results_with_without_dgm/imdb/results.pkl')
+
+    filename = 'results_with_without_dgm/imdb/results.pkl'  
+    results = load_results(filename)
+    results['dgm'] = load_results('results.pkl')
     # Iterate over each pooling method (ASA, SAG, TopK, etc.)
     for pool_method in config.exp.pool_methods:
         # Iterate over each pooling ratio
@@ -701,7 +704,7 @@ def plot_results_per_pooling_method(config):
                 config.exp.snr_values, accuracies_without_dgm, yerr=std_devs_without_dgm, label=f"No DGM", 
                 capsize=5, marker='s', linestyle='--', linewidth=2.5, alpha=0.7
             )
-            plt.ylim(0.45, 0.76)
+            plt.ylim(0.60, 0.76)
             # Append Line2D object and label for legend
             legend_lines.append(Line2D([0], [0], color=line_with_dgm.get_color(), linestyle='-', linewidth=2.5))
             legend_labels.append(f"DGM")
@@ -745,8 +748,8 @@ if __name__ == "__main__":
     # setup_training()
     
     # compare_poolings_fixed_snr()
-    plot_existing_res()
+    # plot_existing_res()
     # compare_with_without_dgm()
     # compare_with_without_dgm()
-    # plot_results_per_pooling_method()
+    plot_results_per_pooling_method()
     
