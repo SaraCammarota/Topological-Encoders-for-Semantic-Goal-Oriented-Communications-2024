@@ -68,12 +68,14 @@ class Model_channel(pl.LightningModule):
             ))
 
         elif hparams["use_gcn"] and (hparams["dgm_name"] == 'new_dgm'):
+            print('Im using the GCN here')
             self.graph_f = DGM_Lev_batch(DGM_Lev(
                 GNN(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 k=hparams["k"],
                 distance=hparams["distance"],
             ))
         elif (not hparams["use_gcn"]) and (hparams["dgm_name"] == 'new_dgm') :
+            print('Im not using the GCN here')
             self.graph_f = DGM_Lev_batch(DGM_Lev(
                 MLP(hparams["dgm_layers"], dropout=hparams["dropout"]),
                 k=hparams["k"],

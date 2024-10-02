@@ -103,7 +103,7 @@ def create_hyperparameters(config: DictConfig):
         "std": config.dgm.get('std', 0),
         "k": config.dgm.get("k", 4),
         "distance": config.dgm.get('distance', 'euclidean'),
-        "use_gcn": config.my_model.get('my_model.use_gcn', False),
+        "use_gcn": config.my_model.get('use_gcn', False),
         "dropout": config.my_model.get('dropout', 0.5),
         "ensemble_steps": config.my_model.get('my_model.ensemble_steps', 1),
         "optimizer": config.training.get('optimizer', 'adam'),
