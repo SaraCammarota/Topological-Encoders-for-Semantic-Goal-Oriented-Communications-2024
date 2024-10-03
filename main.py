@@ -16,6 +16,10 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck, Knn_channel
 import pickle
 
+import seaborn as sns
+
+
+
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def setup_training(config):
     pl.seed_everything(config.my_model.seed)
@@ -863,78 +867,6 @@ def plot_results_comparison(config):
 
             print(f"Plot saved to {filename}")
 
-# @hydra.main(version_base=None, config_path="conf", config_name="config")
-# def plot_gap_comparison_for_methods(config):
-#     """
-#     Generates bar charts to compare the accuracy gap across different methods for each pooling ratio.
-#     Each bar represents a method, and the height corresponds to the accuracy gap for a given SNR.
-    
-#     Args:
-#         with_noise_results: Results with noise.
-#         without_noise_results: Results without noise.
-#         snr_values: A list of SNR values.
-#         config: The configuration object containing pool methods and ratios.
-#     """
-#     with_noise_results = load_results('with_noise_results.pkl')
-#     without_noise_results = load_results('without_noise_results.pkl')
-#     snr_values = config.exp.snr_values 
-#     # Get pooling methods and ratios from the config
-#     pool_methods = config.exp.pool_methods
-#     pooling_ratios = config.exp.pooling_ratios
-    
-#     # Define bar width and positions
-#     bar_width = 0.15  # Width of each bar
-#     n_methods = len(pool_methods)
-    
-#     # Loop over each pooling ratio
-#     for pool_ratio in pooling_ratios:
-#         plt.figure(figsize=(12, 6))  # Create a new figure for each pooling ratio
-
-#         # Store the bar positions for each method for a given SNR value
-#         indices = np.arange(len(snr_values))  # Number of bars (one per SNR)
-
-#         # For each pooling method, calculate the gap and plot the bars
-#         for idx, pool_method in enumerate(pool_methods):
-#             accuracy_gaps = []
-
-#             # Collect the accuracy gap for each SNR
-#             for snr_value in snr_values:
-#                 if (pool_method in with_noise_results[snr_value] and pool_ratio in with_noise_results[snr_value][pool_method]
-#                     and pool_method in without_noise_results[snr_value] and pool_ratio in without_noise_results[snr_value][pool_method]):
-                    
-#                     accuracy_with_noise = with_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
-#                     accuracy_without_noise = without_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
-
-#                     # Calculate the accuracy gap
-#                     accuracy_gap = accuracy_with_noise - accuracy_without_noise
-#                     accuracy_gaps.append(accuracy_gap)
-#                 else:
-#                     print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
-#                     accuracy_gaps.append(0)  # Assign zero if data not available
-
-#             # Plot the bars for the current pooling method
-#             plt.bar(indices + idx * bar_width, accuracy_gaps, bar_width, label=pool_method.upper())
-
-#         # Customize the plot
-#         plt.title(f"Accuracy Gap Comparison for Pooling Ratio: {pool_ratio}", fontsize=16)
-#         plt.xlabel("SNR (dB)", fontsize=14)
-#         plt.ylabel("Accuracy Gap (With Noise - Without Noise)", fontsize=14)
-#         plt.xticks(indices + bar_width * (n_methods - 1) / 2, snr_values, fontsize=12)  # Center ticks between bars
-#         plt.yticks(fontsize=12)
-#         plt.legend(fontsize=12)
-#         plt.grid(True, axis='y')
-
-#         # Save the plot
-#         save_dir = f"new_dgm/comparison_plots/imdb/gap_comparison_plots"
-#         os.makedirs(save_dir, exist_ok=True)
-#         filename = os.path.join(save_dir, f"gap_comparison_ratio_{pool_ratio}.png")
-#         plt.tight_layout()
-#         plt.savefig(filename)
-#         plt.close()
-
-#         print(f"Gap comparison plot saved to {filename}")
-
-
 from plot_utils import plot_gcn_heatmap, plot_gcn_difference
 
 
@@ -1069,7 +1001,8 @@ def plot_gap_comparison_for_methods(config):
 
             # Plot the bars for the current pooling method
             plt.bar(indices + idx * bar_width, accuracy_gaps, bar_width, label=pool_method.upper())
-            plt.errorbar(indices + idx * bar_width, accuracy_gaps, stds, fmt = 'none', color = 'grey', linewidthfloat = 0.1)
+            plt.errorbar(indices + idx * bar_width, accuracy_gaps, stds, fmt = 'none', color = 'grey')
+            plt.ylim(-0.015, 0.086 )
 
         # Customize the plot
         plt.title(f"Accuracy Gap Comparison for SNR: {snr_value} dB", fontsize=16)
@@ -1151,18 +1084,91 @@ def plot_difference_heatmap_for_methods(config):
             print(f"No data available for {pool_method.upper()}.")
 
 
-import seaborn as sns
+from mnist_utils import *
+
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def setup_training_mnist(config):
+    pl.seed_everything(config.my_model.seed)
+
+
+    assert config.dataset.loader.parameters.data_name == 'MNISTSuperpixels'
+    
+    datamodule = MNISTGraphDataModule(batch_size=config.dataset.dataloader_params.batch_size)
+
+    early_stopping_callback = EarlyStopping(
+        monitor=config.training.early_stopping.monitor,
+        patience=config.training.early_stopping.patience,
+        mode=config.training.early_stopping.mode,
+        verbose=True
+    )
+
+    checkpoint_callback = ModelCheckpoint(
+        monitor=config.training.early_stopping.monitor, 
+        filename='{epoch:02d}-{val_loss:.2f}',  
+        save_top_k=1,  
+        mode=config.training.early_stopping.mode, 
+        save_weights_only=True  
+    )
+
+
+    #wandb_logger = WandbLogger(project='imdb_new_dgm')
+    # wandb_logger = WandbLogger(project='mine_vs_baseline_PROTEINS_nodgm')
+    hparams = create_hyperparameters(config)
+    #wandb_logger.log_hyperparams(hparams)
+
+    if config.my_model.name == 'dgm_channel':
+        channel = Model_channel(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
+
+    elif config.my_model.name == 'perceiver': 
+        channel = Perceiver_channel(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = Perceiver_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    elif config.my_model.name == 'mlp_bottleneck': 
+        channel = MLP_Bottleneck(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = MLP_Bottleneck.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    else:
+        print('Model not implemented. Check config file')
+
+
+    
+    return trainer, best_model, datamodule
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
 
-    # filename = 'new_dgm\\results_with_without_gcn\\imdb\\results.pkl'
-    # with open(filename, 'rb') as f:
-    #         results = pickle.load(f)
-    # plot_gcn_difference(results)
-    # print(results['with_gcn'])
-    # print('----------------------------------------------')
-    # print(results['without_gcn'])    
-    # # setup_training()
+      
+    setup_training_mnist()
     
     # compare_poolings_fixed_snr()
     # plot_existing_res()
@@ -1172,4 +1178,4 @@ if __name__ == "__main__":
     # plot_results_comparison()
     # plot_gap_comparison_for_methods()
     # compare_with_without_gcn()
-    plot_difference_heatmap_for_methods()
+    # plot_difference_heatmap_for_methods()

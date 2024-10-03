@@ -1,11 +1,19 @@
 defaults:
-  - dataset: imdb_binary
-  - my_model: model_config
+  - dataset: mnist
+  - my_model: mlp_bottleneck
   - dgm: new_dgm_conf
   - pooling: topk_conf
   - training: train_conf
   - exp: compare_poolings
   - paths: default
+
+
+
+
+
+
+
+
 
 
 

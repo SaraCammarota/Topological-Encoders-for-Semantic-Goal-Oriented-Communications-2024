@@ -262,7 +262,8 @@ class GraphLoader(AbstractLoader):
         elif self.parameters.data_name in MNIST:
             
             # Load the MNIST dataset (only train set)
-            dataset = torch_geometric.datasets.MNISTSuperpixels(root='data', train=True)
+            dataset = torch_geometric.datasets.MNISTSuperpixels(root=root_data_dir, train=True)
+            data_dir = root_data_dir 
 
 
         elif self.parameters.data_name in HETEROPHILIC_DATASETS:
@@ -662,7 +663,8 @@ class PreProcessor(torch_geometric.data.InMemoryDataset):
         elif isinstance(dataset, torch_geometric.data.Data):
             data_list = [dataset]
         elif isinstance(dataset, torch_geometric.datasets.mnist_superpixels.MNISTSuperpixels): 
-            data_list = dataset
+            data_list = [dataset.get(idx) for idx in range(len(dataset))]
+            # data_list = dataset
         self.data_list = data_list
         self.transforms_applied = False
         super().__init__(data_dir, None, None, **kwargs)

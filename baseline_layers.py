@@ -25,7 +25,7 @@ class FeedForward(nn.Module):
             nn.Dropout(dropout), # why dropout after linear?
         )
 
-    def forward(self, x):
+    def forward(self, x): 
         return self.net(x)
 
 
