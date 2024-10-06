@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from loaders import *
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck, Knn_channel
+from baseline_models import MLP_KMeans, MLP_PCA, Perceiver_channel, MLP_Bottleneck, Knn_channel, No_feat_ext
 import pickle
 
 import seaborn as sns
@@ -93,6 +93,13 @@ def setup_training(config):
         trainer.fit(channel, datamodule)
         best_model_path = checkpoint_callback.best_model_path
         best_model = Knn_channel.load_from_checkpoint(best_model_path, hparams=hparams) 
+
+    elif config.my_model.name == 'No_feat_ext': 
+        channel = No_feat_ext(hparams)
+        trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback],)# logger=wandb_logger, log_every_n_steps=2)
+        trainer.fit(channel, datamodule)
+        best_model_path = checkpoint_callback.best_model_path
+        best_model = No_feat_ext.load_from_checkpoint(best_model_path, hparams=hparams) 
 
 
     else:
@@ -319,7 +326,10 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
 def compare_poolings(config: DictConfig, snr):
 
     config.my_model.channel.snr_db = snr
-    results = {}
+    with open("results.pkl", "rb") as file:
+        results = pickle.load(file)
+
+    results["No_feat_ext"] = {}
 
     for pool_method in config.exp.pool_methods: 
 
@@ -331,6 +341,8 @@ def compare_poolings(config: DictConfig, snr):
             config.my_model.name = 'perceiver'
         elif config.pooling.pooling_type == 'mlp_bottleneck':
             config.my_model.name = 'perceiver'
+        elif config.pooling.pooling_type == 'No_feat_ext':
+            config.my_model.name = 'No_feat_ext'
         elif config.pooling.pooling_type in ['asa', 'sag', 'topk']:
             config.my_model.name = 'dgm_channel'
 
@@ -372,23 +384,6 @@ def plot_results_pool(results, pooling_ratios, config):
     plt.legend(title="Pooling Methods")
     plt.grid(True)
     plt.tight_layout()
-
-
-# @hydra.main(version_base=None, config_path="conf", config_name="config")
-# def compare_poolings_fixed_snr(config: DictConfig):
-#     save_dir = "compare_poolings_fixedsnr" 
-#     os.makedirs(save_dir, exist_ok=True)  
-
-#     for snr_value in config.exp.snr_values:
-        
-#         print(f"Running experiment with SNR: {snr_value} dB")
-
-#         compare_poolings(config, snr_value)  
-#         filename = os.path.join(save_dir, f"accuracy_vs_pooling_snr_{snr_value}.png")
-#         plt.savefig(filename)
-#         plt.close()  
-
-#         print(f"Plot saved to {filename}")
 
 
 
@@ -455,6 +450,8 @@ def compare_poolings_fixed_snr(config: DictConfig):
             config.my_model.name = 'mlp_bottleneck'
         elif config.pooling.pooling_type in ['asa', 'sag', 'topk']:
             config.my_model.name = 'dgm_channel'
+        elif config.pooling.pooling_type == 'No_feat_ext':
+            config.my_model.name = 'No_feat_ext'
 
         for pool_ratio in config.exp.pooling_ratios:
 
@@ -1168,9 +1165,9 @@ def setup_training_mnist(config):
 if __name__ == "__main__":
 
       
-    setup_training_mnist()
+    # setup_training()
     
-    # compare_poolings_fixed_snr()
+    compare_poolings_fixed_snr()
     # plot_existing_res()
     # compare_with_without_dgm()
     # compare_with_without_dgm()

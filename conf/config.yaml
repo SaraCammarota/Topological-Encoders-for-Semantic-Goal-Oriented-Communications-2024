@@ -1,6 +1,6 @@
 defaults:
-  - dataset: mnist
-  - my_model: mlp_bottleneck
+  - dataset: imdb_binary
+  - my_model: No_feat_extr
   - dgm: new_dgm_conf
   - pooling: topk_conf
   - training: train_conf
