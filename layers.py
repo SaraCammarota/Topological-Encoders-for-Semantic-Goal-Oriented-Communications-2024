@@ -74,51 +74,166 @@ class DGM(nn.Module):
 
 
 
+# class NoiseBlock(nn.Module):
+#     def __init__(self,):
+#       super().__init__()
+
+#     @torch.no_grad()
+#     def generate_noise(self, x: torch.Tensor, batch, snr_db=None):
+#       """
+#       Adds noise to the input according to the given signal to noise ratio.
+#       The input is assumed to be of shape (batch_size, sequence_length, hidden_dim).
+#       """
+#       #assert snr_linear > 0, "SNR must be greater than 0"
+#       # Compute the signal power
+#       signal_power = torch.mean(x ** 2, dim=-1, keepdim=True) 
+
+#       # Compute the noise power
+#       # Convert SNR from dB to linear scale
+#       snr_linear = 10**(snr_db / 10)
+
+#       noise_power = signal_power / snr_linear.to(signal_power.device)
+
+#       # Compute the standard deviation of the noise
+#       std = torch.sqrt(noise_power)
+#       noise = torch.randn_like(x, requires_grad=False) * std
+
+#       return noise
+
+#     #@torch.no_grad()
+#     def forward(self, x: torch.Tensor, snr_db = 0):
+#       """
+#       Adds noise to the input according to the given signal to noise ratio.
+#       The input is assumed to be of shape (batch_size, sequence_length, hidden_dim).
+#       """
+#       if snr_db is None:
+#         # Sample snr from uniform distribution between 1, 10
+#         # This a lirear snr, to map it to db use the following SNR_linear=10^(SNR_db/10)
+#         snr_db = torch.randint(-10, 10, (1,))
+#       else:
+#         snr_db = torch.tensor(snr_db).unsqueeze(0)
+
+#       noise = self.generate_noise(x, snr_db=snr_db)
+
+#       # Add the noise to the input
+#       x = x + noise
+#       return x
+
+
+
 class NoiseBlock(nn.Module):
-    def __init__(self,):
-      super().__init__()
+    def __init__(self):
+        super().__init__()
 
     @torch.no_grad()
-    def generate_noise(self, x: torch.Tensor, snr_db=None):
-      """
-      Adds noise to the input according to the given signal to noise ratio.
-      The input is assumed to be of shape (batch_size, sequence_length, hidden_dim).
-      """
-      #assert snr_linear > 0, "SNR must be greater than 0"
-      # Compute the signal power
-      signal_power = torch.mean(x ** 2, dim=-1, keepdim=True)
+    def generate_noise(self, x: torch.Tensor, batch: torch.Tensor, snr_db=None):
+        """
+        Adds noise to the input according to the given signal-to-noise ratio.
+        The input x is assumed to be of shape (total_nodes_in_batch, hidden_dim).
+        The `batch` attribute is used to separate the signal power computation for each graph.
+        """
+        # Compute the signal power for each node
 
-      # Compute the noise power
-      # Convert SNR from dB to linear scale
-      snr_linear = 10**(snr_db / 10)
+        node_signal_power = torch.mean(x ** 2, dim=-1, keepdim=True)  # Shape: (total_nodes_in_batch, 1)
 
-      noise_power = signal_power / snr_linear.to(signal_power.device)
+        # Sum the signal power for each graph based on `batch`
+        # `batch` is a tensor of shape (total_nodes_in_batch,)
+        num_graphs = batch.max().item() + 1
+        graph_signal_power = torch.zeros(num_graphs, 1, device=x.device)  # Initialize graph power tensor
+        
+        # Accumulate the node signal powers for each graph
+        graph_signal_power.scatter_add_(0, batch.unsqueeze(-1), node_signal_power)
 
-      # Compute the standard deviation of the noise
-      std = torch.sqrt(noise_power)
-      noise = torch.randn_like(x, requires_grad=False) * std
+        # Count the number of nodes in each graph
+        graph_node_counts = torch.bincount(batch).view(-1, 1).float()
 
-      return noise
+        # Compute average signal power per graph
+        graph_signal_power = graph_signal_power / graph_node_counts
 
-    #@torch.no_grad()
-    def forward(self, x: torch.Tensor, snr_db = 0):
-      """
-      Adds noise to the input according to the given signal to noise ratio.
-      The input is assumed to be of shape (batch_size, sequence_length, hidden_dim).
-      """
-      if snr_db is None:
-        # Sample snr from uniform distribution between 1, 10
-        # This a lirear snr, to map it to db use the following SNR_linear=10^(SNR_db/10)
-        snr_db = torch.randint(-10, 10, (1,))
-      else:
-        snr_db = torch.tensor(snr_db).unsqueeze(0)
+        # Compute noise power for each graph based on SNR
+        snr_linear = 10 ** (snr_db / 10)
+        noise_power = graph_signal_power / snr_linear.to(graph_signal_power.device)
 
-      noise = self.generate_noise(x, snr_db=snr_db)
+        # Expand noise power to match the shape of `x`
+        expanded_noise_power = noise_power[batch]
 
-      # Add the noise to the input
-      x = x + noise
-      return x
+        # Compute the standard deviation of the noise for each node
+        std = torch.sqrt(expanded_noise_power)
+        print("std")
+        print(std)
+        noise = torch.randn_like(x, requires_grad=False) * std
 
+        print("noise")
+        print(noise)
+
+        return noise
+
+    def forward(self, x: torch.Tensor, batch: torch.Tensor, snr_db=0):
+        """
+        Adds noise to the input according to the given signal-to-noise ratio.
+        The input x is assumed to be of shape (total_nodes_in_batch, hidden_dim).
+        The `batch` attribute is used to compute the noise separately for each graph.
+        """
+        if snr_db is None:
+            # Sample SNR from a uniform distribution between -10 and 10 dB.
+            snr_db = torch.randint(-10, 10, (1,))
+        else:
+            snr_db = torch.tensor(snr_db).unsqueeze(0)
+
+        # Generate noise based on the SNR and batch attribute
+        noise = self.generate_noise(x, batch=batch, snr_db=snr_db)
+        print(snr_db)
+        print("x")
+        print(x)
+
+        # Add the noise to the input features
+        x = x + noise
+        return x
+
+
+
+class PerceiverNoiseBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @torch.no_grad()
+    def generate_noise(self, x: torch.Tensor, batch: torch.Tensor, snr_db=None):
+        """
+        Adds noise to the input according to the given signal-to-noise ratio.
+        The input x is assumed to be of shape (total_nodes_in_batch, hidden_dim).
+        The `batch` attribute is used to separate the signal power computation for each graph.
+        """
+        graph_signal_power = torch.mean(x**2, dim = (1,2))
+
+        # Compute noise power for each graph based on SNR
+        snr_linear = 10 ** (snr_db / 10)
+        noise_power = graph_signal_power / snr_linear.to(graph_signal_power.device)
+
+
+        # Compute the standard deviation of the noise for each node
+        std = torch.sqrt(noise_power).unsqueeze(-1).unsqueeze(-1).expand_as(x)
+        noise = torch.randn_like(x, requires_grad=False) * std
+
+        return noise
+
+    def forward(self, x: torch.Tensor, batch: torch.Tensor, snr_db=0):
+        """
+        Adds noise to the input according to the given signal-to-noise ratio.
+        The input x is assumed to be of shape (total_nodes_in_batch, hidden_dim).
+        The `batch` attribute is used to compute the noise separately for each graph.
+        """
+        if snr_db is None:
+            # Sample SNR from a uniform distribution between -10 and 10 dB.
+            snr_db = torch.randint(-10, 10, (1,))
+        else:
+            snr_db = torch.tensor(snr_db).unsqueeze(0)
+
+        # Generate noise based on the SNR and batch attribute
+        noise = self.generate_noise(x, batch=batch, snr_db=snr_db)
+
+        # Add the noise to the input features
+        x = x + noise
+        return x
 
 
 

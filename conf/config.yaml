@@ -1,6 +1,6 @@
 defaults:
   - dataset: imdb_binary
-  - my_model: No_feat_extr
+  - my_model: model_config
   - dgm: new_dgm_conf
   - pooling: topk_conf
   - training: train_conf

@@ -8,7 +8,7 @@ from baseline_layers import *
 import hydra
 from omegaconf import DictConfig
 import warnings
-from layers import MLP, GNN, DGM, NoiseBlock, DGM_d
+from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, PerceiverNoiseBlock
 from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 from torch_geometric.nn import knn_graph
 
@@ -337,6 +337,7 @@ class Perceiver_channel(pl.LightningModule):
 
         self.avg_num_nodes = hparams["avg_num_nodes"]
 
+
         compressed_dim = max(1, round(self.pooling_ratio * self.avg_num_nodes))  # --->  self.num_datapoints is different for each graph. 
 
         
@@ -345,7 +346,7 @@ class Perceiver_channel(pl.LightningModule):
     
         
         self.noisy_training = hparams["noisy_training"]
-        self.noise = NoiseBlock()
+        self.noise = PerceiverNoiseBlock()
         self.snr_db = None    # in this way, a different snr value is sampled at every forward pass
         
         #self.post = MLP(hparams['post_layers'], dropout= hparams["dropout"])
@@ -387,12 +388,14 @@ class Perceiver_channel(pl.LightningModule):
 
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
 
+        batch = torch.arange(b).repeat_interleave(self.latents.size(0)).to(torch.int64)#.unsqueeze(-1)
+
         if self.noisy_training == True: 
-            x = self.noise(x, self.snr_db)
+            x = self.noise(x, batch, self.snr_db)
 
         elif self.noisy_training == False:
             if self.training == False:
-                x = self.noise(x, self.snr_db)
+                x = self.noise(x, batch, self.snr_db)
 
         else:
             print('Invalid self.noisy_training value')
@@ -531,17 +534,17 @@ class MLP_Bottleneck(pl.LightningModule):
         '''
         
         x = data.x.detach()
-        batch = data.batch
+        batch = data.batch_0
         ptr = data.ptr
 
         x = self.pre(x)
 
         if self.noisy_training == True: 
-            x = self.noise(x, self.snr_db)
+            x = self.noise(x, batch, self.snr_db)
 
         elif self.noisy_training == False:
             if self.training == False:
-                x = self.noise(x, self.snr_db)
+                x = self.noise(x, batch, self.snr_db)
 
         else:
             print('Invalid self.noisy_training value')
@@ -580,7 +583,7 @@ class MLP_Bottleneck(pl.LightningModule):
         if torch.isnan(tr_loss).any() or torch.isnan(pred).any():
             print(f"NaN detected in training data or loss at batch {batch_idx}")
             print(f"Predictions: {pred}, Labels: {train_lab}")
-        batch_size = batch.batch.max().item() + 1  
+        batch_size = batch.batch_0.max().item() + 1  
         self.log("train_acc", self.train_acc(pred.softmax(-1).argmax(-1), train_lab), on_step=False, on_epoch=True, prog_bar = True, batch_size = batch_size)
         self.log("train_loss", tr_loss, on_step=False, on_epoch=True, prog_bar = True, batch_size = batch_size)
         #torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)

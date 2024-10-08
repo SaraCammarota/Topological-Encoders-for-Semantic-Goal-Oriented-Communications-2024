@@ -170,11 +170,11 @@ class Model_channel(pl.LightningModule):
         # what if we don't take into account the noise during training?
 
         if self.noisy_training == True: 
-            x = self.noise(x, self.snr_db)
+            x = self.noise(x, batch, self.snr_db)
 
         elif self.noisy_training == False:
             if self.training == False:
-                x = self.noise(x, self.snr_db)
+                x = self.noise(x, batch, self.snr_db)
 
         else:
             print('Invalid self.noisy_training value')

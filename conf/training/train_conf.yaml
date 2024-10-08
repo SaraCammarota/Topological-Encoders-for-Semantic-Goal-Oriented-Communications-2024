@@ -4,5 +4,5 @@ optimizer: "adam"
 noisy: true
 early_stopping: 
   monitor: "val_loss"
-  patience: 30
+  patience: 50
   mode: "min" 

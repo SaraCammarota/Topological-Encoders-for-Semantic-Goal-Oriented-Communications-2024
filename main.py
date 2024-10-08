@@ -323,50 +323,48 @@ def plot_comparison(perceiver_accuracies, perceiver_std_devs, my_model_accuracie
 
 # for fixed SNR in validation, compare the different pooling methods
 
-def compare_poolings(config: DictConfig, snr):
+# def compare_poolings(config: DictConfig, snr):
 
-    config.my_model.channel.snr_db = snr
-    with open("results.pkl", "rb") as file:
-        results = pickle.load(file)
+#     config.my_model.channel.snr_db = snr
 
-    results["No_feat_ext"] = {}
+#     results = {}
 
-    for pool_method in config.exp.pool_methods: 
+#     for pool_method in config.exp.pool_methods: 
 
-        config.pooling.pooling_type = pool_method
-        method_accuracies = []
-        method_std = []
+#         config.pooling.pooling_type = pool_method
+#         method_accuracies = []
+#         method_std = []
 
-        if config.pooling.pooling_type == 'perceiver': 
-            config.my_model.name = 'perceiver'
-        elif config.pooling.pooling_type == 'mlp_bottleneck':
-            config.my_model.name = 'perceiver'
-        elif config.pooling.pooling_type == 'No_feat_ext':
-            config.my_model.name = 'No_feat_ext'
-        elif config.pooling.pooling_type in ['asa', 'sag', 'topk']:
-            config.my_model.name = 'dgm_channel'
+#         if config.pooling.pooling_type == 'perceiver': 
+#             config.my_model.name = 'perceiver'
+#         elif config.pooling.pooling_type == 'mlp_bottleneck':
+#             config.my_model.name = 'perceiver'
+#         elif config.pooling.pooling_type == 'No_feat_ext':
+#             config.my_model.name = 'No_feat_ext'
+#         elif config.pooling.pooling_type in ['asa', 'sag', 'topk']:
+#             config.my_model.name = 'dgm_channel'
 
 
-        for pool_ratio in config.exp.pooling_ratios:
+#         for pool_ratio in config.exp.pooling_ratios:
 
-            config.pooling.pooling_ratio = pool_ratio
-            trainer, model, datamodule = setup_training(config)
-            trial_accuracies = []
+#             config.pooling.pooling_ratio = pool_ratio
+#             trainer, model, datamodule = setup_training(config)
+#             trial_accuracies = []
 
-            for _ in range(config.exp.num_trials):
+#             for _ in range(config.exp.num_trials):
 
-                test_result = trainer.validate(model, datamodule)
-                trial_accuracies.append(test_result[0]['val_acc'])
+#                 test_result = trainer.test(model, datamodule)
+#                 trial_accuracies.append(test_result[0]['test_acc'])
 
-            method_accuracies.append(np.mean(trial_accuracies))
-            method_std.append(np.std(trial_accuracies))
+#             method_accuracies.append(np.mean(trial_accuracies))
+#             method_std.append(np.std(trial_accuracies))
 
-        results[pool_method] = {
-            "accuracies": method_accuracies,
-            "std": method_std
-        }
+#         results[pool_method] = {
+#             "accuracies": method_accuracies,
+#             "std": method_std
+#         }
 
-    plot_results_pool(results, config.exp.pooling_ratios, config)
+    # plot_results_pool(results, config.exp.pooling_ratios, config)
 
 
 def plot_results_pool(results, pooling_ratios, config):
@@ -414,8 +412,8 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
 
     # Validate the trained model multiple times for stability
     for _ in range(config.exp.num_trials):
-        test_result = trainer.validate(model, datamodule)
-        trial_accuracies.append(test_result[0]['val_acc'])
+        test_result = trainer.test(model, datamodule)
+        trial_accuracies.append(test_result[0]['test_acc'])
 
     if snr not in results:
         results[snr] = {}
@@ -433,7 +431,7 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_poolings_fixed_snr(config: DictConfig):
-    save_dir = "new_dgm/results_poolings_snrs_without_noise/imdb"
+    save_dir = "new_dgm//results_poolings_snrs_with_noise//imdb"
     os.makedirs(save_dir, exist_ok=True)
     results_file = os.path.join(save_dir, "results.pkl")
 
@@ -526,6 +524,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         plt.ylabel("Accuracy", fontsize=16)  # Increased font size
         plt.xticks(fontsize=14)  # Increased tick size
         plt.yticks(fontsize=14)  # Increased tick size
+        
 
         # Use the legend_lines and legend_labels to create the legend
         plt.legend(legend_lines, legend_labels, fontsize=12)
@@ -534,7 +533,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "new_dgm/comparison_plots/imdb/with_without_dgm/compare_poolings_snr_plots"
+        save_dir = "new_dgm/results_poolings_snrs_with_noise/imdb/compare_poolings_snr_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
         plt.savefig(filename)
@@ -590,6 +589,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.xticks(fontsize=12)  # Increased tick size
         plt.yticks(fontsize=12)  # Increased tick size
         
+        
         # Use the legend_lines and legend_labels to create the legend
         plt.legend(legend_lines, legend_labels, fontsize=12)
         
@@ -597,7 +597,7 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "new_dgm/comparison_plots/imdb/with_without_dgm/compare_poolings_ratio_plots"
+        save_dir = "new_dgm/results_poolings_snrs_with_noise/imdb/compare_poolings_ratio_plots"
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
         plt.savefig(filename)
@@ -610,9 +610,9 @@ def plot_results_pool_per_ratio(results, snr_values, config):
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def plot_existing_res(config: DictConfig):
-    filename = 'results_with_without_dgm/imdb/results.pkl'
+    filename = 'new_dgm//results_poolings_snrs_with_noise//imdb//results.pkl'
     results = load_results(filename)
-    results['dgm'] = load_results('results.pkl')
+    # results['dgm'] = load_results('results.pkl')
     plot_results_pool_per_snr(results, config.exp.pooling_ratios, config)
     plot_results_pool_per_ratio(results, config.exp.snr_values, config)
 
@@ -999,7 +999,7 @@ def plot_gap_comparison_for_methods(config):
             # Plot the bars for the current pooling method
             plt.bar(indices + idx * bar_width, accuracy_gaps, bar_width, label=pool_method.upper())
             plt.errorbar(indices + idx * bar_width, accuracy_gaps, stds, fmt = 'none', color = 'grey')
-            plt.ylim(-0.015, 0.086 )
+            # plt.ylim(-0.025, 0.08 )
 
         # Customize the plot
         plt.title(f"Accuracy Gap Comparison for SNR: {snr_value} dB", fontsize=16)
@@ -1165,9 +1165,9 @@ def setup_training_mnist(config):
 if __name__ == "__main__":
 
       
-    # setup_training()
+    setup_training()
     
-    compare_poolings_fixed_snr()
+    # compare_poolings_fixed_snr()
     # plot_existing_res()
     # compare_with_without_dgm()
     # compare_with_without_dgm()

@@ -22,7 +22,7 @@ use_gcn: false
 
 channel:
   noise: 'awgn'
-  snr_db: null
+  snr_db: 10
 
 graph_loss_reg: 1
 poly_loss_reg: 1
