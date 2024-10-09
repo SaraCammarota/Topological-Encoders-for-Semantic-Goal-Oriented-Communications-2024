@@ -73,6 +73,7 @@ def setup_training(config):
         best_model_path = checkpoint_callback.best_model_path
         best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
 
+
     elif config.my_model.name == 'perceiver': 
         channel = Perceiver_channel(hparams)
         trainer = pl.Trainer(max_epochs=config.training.max_epochs, accelerator = "cpu", callbacks=[checkpoint_callback, early_stopping_callback])#, logger=wandb_logger, log_every_n_steps=2)
@@ -109,7 +110,7 @@ def setup_training(config):
     #channel = MLP_PCA(hparams)
     # best_model = Model_channel.load_from_checkpoint(best_model_path, hparams=hparams)
     #best_model = MLP_PCA.load_from_checkpoint(best_model_path, hparams=hparams)
-    
+
     return trainer, best_model, datamodule
 
 
@@ -431,7 +432,7 @@ def compare_poolings(config: DictConfig, trainer, snr, model, datamodule, pool_m
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def compare_poolings_fixed_snr(config: DictConfig):
-    save_dir = "new_dgm//results_poolings_snrs_with_noise//imdb"
+    save_dir = f"new_dgm//results_poolings_snrs_without_noise//imdb//pazzi{config.my_model.channel.snr_db}"
     os.makedirs(save_dir, exist_ok=True)
     results_file = os.path.join(save_dir, "results.pkl")
 
@@ -472,6 +473,7 @@ def compare_poolings_fixed_snr(config: DictConfig):
     plot_results_pool_per_ratio(results, config.exp.snr_values, config)
 
     print(f"Results saved to {save_dir}")
+    return results
 
 
 
@@ -533,7 +535,7 @@ def plot_results_pool_per_snr(results, pooling_ratios, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "new_dgm/results_poolings_snrs_with_noise/imdb/compare_poolings_snr_plots"
+        save_dir = os.path.join("new_dgm/results_poolings_snrs_without_noise/imdb/pazzi", f"{config.my_model.channel.snr_db}")
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_pooling_ratio_snr_{snr_value}.png")
         plt.savefig(filename)
@@ -597,13 +599,24 @@ def plot_results_pool_per_ratio(results, snr_values, config):
         plt.tight_layout()
 
         # Save the plot as a PNG file
-        save_dir = "new_dgm/results_poolings_snrs_with_noise/imdb/compare_poolings_ratio_plots"
+        save_dir = os.path.join("new_dgm/results_poolings_snrs_without_noise/imdb/pazzi", f"{config.my_model.channel.snr_db}")
         os.makedirs(save_dir, exist_ok=True)
         filename = os.path.join(save_dir, f"accuracy_vs_snr_ratio_{pool_ratio}.png")
         plt.savefig(filename)
         plt.close()  # Close the plot to avoid overlap
 
         print(f"Plot saved to {filename}")
+
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def funzione_pazza(config: DictConfig):
+    results = {}
+
+    for snr in [-30, -20, -10, -5, 0, 5, 10, 20, 30]:
+
+        config.my_model.channel.snr_db = snr
+        results["snr"] = compare_poolings_fixed_snr(config)
+
+    save_results(results, 'risultati_pazzi.pkl')
 
 
 
@@ -867,76 +880,76 @@ def plot_results_comparison(config):
 from plot_utils import plot_gcn_heatmap, plot_gcn_difference
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
-def plot_gap_comparison_for_methods(config):
-    """
-    Generates bar charts to compare the accuracy gap across different methods for each SNR.
-    Each bar represents a method, and the height corresponds to the accuracy gap for a given pooling ratio.
+# @hydra.main(version_base=None, config_path="conf", config_name="config")
+# def plot_gap_comparison_for_methods(config):
+#     """
+#     Generates bar charts to compare the accuracy gap across different methods for each SNR.
+#     Each bar represents a method, and the height corresponds to the accuracy gap for a given pooling ratio.
     
-    Args:
-        with_noise_results: Results with noise.
-        without_noise_results: Results without noise.
-        snr_values: A list of SNR values.
-        config: The configuration object containing pool methods and ratios.
-    """
-    with_noise_results = load_results('with_noise_results.pkl')
-    without_noise_results = load_results('without_noise_results.pkl')
-    snr_values = config.exp.snr_values 
-    # Get pooling methods and ratios from the config
-    pool_methods = config.exp.pool_methods
-    pooling_ratios = config.exp.pooling_ratios
+#     Args:
+#         with_noise_results: Results with noise.
+#         without_noise_results: Results without noise.
+#         snr_values: A list of SNR values.
+#         config: The configuration object containing pool methods and ratios.
+#     """
+#     with_noise_results = load_results('new_dgm//results_poolings_snrs_with_noise//imdb//results.pkl')
+#     without_noise_results = load_results('new_dgm//results_poolings_snrs_without_noise//imdb//results.pkl')
+#     snr_values = config.exp.snr_values 
+#     # Get pooling methods and ratios from the config
+#     pool_methods = config.exp.pool_methods
+#     pooling_ratios = config.exp.pooling_ratios
     
-    # Define bar width and positions
-    bar_width = 0.15  # Width of each bar
-    n_ratios = len(pooling_ratios)
+#     # Define bar width and positions
+#     bar_width = 0.15  # Width of each bar
+#     n_ratios = len(pooling_ratios)
 
-    # Loop over each SNR value
-    for snr_value in snr_values:
-        plt.figure(figsize=(12, 6))  # Create a new figure for each SNR value
+#     # Loop over each SNR value
+#     for snr_value in snr_values:
+#         plt.figure(figsize=(12, 6))  # Create a new figure for each SNR value
 
-        # Store the bar positions for each method for a given pooling ratio
-        indices = np.arange(len(pool_methods))  # Number of bars (one per method)
+#         # Store the bar positions for each method for a given pooling ratio
+#         indices = np.arange(len(pool_methods))  # Number of bars (one per method)
 
-        # For each pooling ratio, calculate the gap and plot the bars
-        for idx, pool_ratio in enumerate(pooling_ratios):
-            accuracy_gaps = []
+#         # For each pooling ratio, calculate the gap and plot the bars
+#         for idx, pool_ratio in enumerate(pooling_ratios):
+#             accuracy_gaps = []
 
-            # For each pooling method, calculate the accuracy gap for the fixed SNR
-            for pool_method in pool_methods:
-                if (pool_method in with_noise_results[snr_value] and pool_ratio in with_noise_results[snr_value][pool_method]
-                    and pool_method in without_noise_results[snr_value] and pool_ratio in without_noise_results[snr_value][pool_method]):
+#             # For each pooling method, calculate the accuracy gap for the fixed SNR
+#             for pool_method in pool_methods:
+#                 if (pool_method in with_noise_results[snr_value] and pool_ratio in with_noise_results[snr_value][pool_method]
+#                     and pool_method in without_noise_results[snr_value] and pool_ratio in without_noise_results[snr_value][pool_method]):
                     
-                    accuracy_with_noise = with_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
-                    accuracy_without_noise = without_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
+#                     accuracy_with_noise = with_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
+#                     accuracy_without_noise = without_noise_results[snr_value][pool_method][pool_ratio]["accuracies"]
 
-                    # Calculate the accuracy gap
-                    accuracy_gap = accuracy_with_noise - accuracy_without_noise
-                    accuracy_gaps.append(accuracy_gap)
-                else:
-                    print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
-                    accuracy_gaps.append(0)  # Assign zero if data not available
+#                     # Calculate the accuracy gap
+#                     accuracy_gap = accuracy_with_noise - accuracy_without_noise
+#                     accuracy_gaps.append(accuracy_gap)
+#                 else:
+#                     print(f"No data found for SNR: {snr_value}, Method: {pool_method}, Ratio: {pool_ratio}")
+#                     accuracy_gaps.append(0)  # Assign zero if data not available
 
-            # Plot the bars for the current pooling ratio
-            plt.bar(indices + idx * bar_width, accuracy_gaps, bar_width, label=f"Ratio {pool_ratio}")
+#             # Plot the bars for the current pooling ratio
+#             plt.bar(indices + idx * bar_width, accuracy_gaps, bar_width, label=f"Ratio {pool_ratio}")
 
-        # Customize the plot
-        plt.title(f"Accuracy Gap Comparison for SNR: {snr_value} dB", fontsize=16)
-        plt.xlabel("Pooling Methods", fontsize=14)
-        plt.ylabel("Accuracy Gap (With Noise - Without Noise)", fontsize=14)
-        plt.xticks(indices + bar_width * (n_ratios - 1) / 2, pool_methods, fontsize=12)  # Center ticks between bars
-        plt.yticks(fontsize=12)
-        plt.legend(title="Pooling Ratios", fontsize=12)
-        plt.grid(True, axis='y')
+#         # Customize the plot
+#         plt.title(f"Accuracy Gap Comparison for SNR: {snr_value} dB", fontsize=16)
+#         plt.xlabel("Pooling Methods", fontsize=14)
+#         plt.ylabel("Accuracy Gap (With Noise - Without Noise)", fontsize=14)
+#         plt.xticks(indices + bar_width * (n_ratios - 1) / 2, pool_methods, fontsize=12)  # Center ticks between bars
+#         plt.yticks(fontsize=12)
+#         plt.legend(title="Pooling Ratios", fontsize=12)
+#         plt.grid(True, axis='y')
 
-        # Save the plot
-        save_dir = f"new_dgm/comparison_plots/imdb/gap_comparison_plots"
-        os.makedirs(save_dir, exist_ok=True)
-        filename = os.path.join(save_dir, f"gap_comparison_snr_{snr_value}.png")
-        plt.tight_layout()
-        plt.savefig(filename)
-        plt.close()
+#         # Save the plot
+#         save_dir = f"new_dgm/comparison_plots/imdb/gap_comparison_plots"
+#         os.makedirs(save_dir, exist_ok=True)
+#         filename = os.path.join(save_dir, f"gap_comparison_snr_{snr_value}.png")
+#         plt.tight_layout()
+#         plt.savefig(filename)
+#         plt.close()
 
-        print(f"Gap comparison plot saved to {filename}")
+#         print(f"Gap comparison plot saved to {filename}")
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
@@ -951,8 +964,8 @@ def plot_gap_comparison_for_methods(config):
         snr_values: A list of SNR values.
         config: The configuration object containing pool methods and ratios.
     """
-    with_noise_results = load_results('with_noise_results.pkl')
-    without_noise_results = load_results('without_noise_results.pkl')
+    with_noise_results = load_results('new_dgm//results_poolings_snrs_with_noise//imdb//results.pkl')
+    without_noise_results = load_results('new_dgm//results_poolings_snrs_without_noise//imdb//results.pkl')
     snr_values = config.exp.snr_values 
     # Get pooling methods and ratios from the config
     pool_methods = config.exp.pool_methods
@@ -1161,12 +1174,11 @@ def setup_training_mnist(config):
 
 
 
-
 if __name__ == "__main__":
 
       
-    setup_training()
-    
+    # setup_training()
+    funzione_pazza()
     # compare_poolings_fixed_snr()
     # plot_existing_res()
     # compare_with_without_dgm()

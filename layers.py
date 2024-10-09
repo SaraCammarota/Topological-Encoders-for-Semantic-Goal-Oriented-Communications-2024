@@ -88,11 +88,16 @@ class DGM(nn.Module):
 #       # Compute the signal power
 #       signal_power = torch.mean(x ** 2, dim=-1, keepdim=True) 
 
+
 #       # Compute the noise power
 #       # Convert SNR from dB to linear scale
 #       snr_linear = 10**(snr_db / 10)
+#     #   if self.training == False: 
+#     #         print(f"snr_db: {snr_db}, snr_linear: {snr_linear}")
 
 #       noise_power = signal_power / snr_linear.to(signal_power.device)
+#     #   if self.training == False: 
+#     #         print(f"noise_power: {noise_power}, signal_power: {signal_power}")
 
 #       # Compute the standard deviation of the noise
 #       std = torch.sqrt(noise_power)
@@ -101,7 +106,7 @@ class DGM(nn.Module):
 #       return noise
 
 #     #@torch.no_grad()
-#     def forward(self, x: torch.Tensor, snr_db = 0):
+#     def forward(self, x: torch.Tensor, batch, snr_db = 0):
 #       """
 #       Adds noise to the input according to the given signal to noise ratio.
 #       The input is assumed to be of shape (batch_size, sequence_length, hidden_dim).
@@ -113,7 +118,7 @@ class DGM(nn.Module):
 #       else:
 #         snr_db = torch.tensor(snr_db).unsqueeze(0)
 
-#       noise = self.generate_noise(x, snr_db=snr_db)
+#       noise = self.generate_noise(x, batch, snr_db=snr_db)
 
 #       # Add the noise to the input
 #       x = x + noise
@@ -159,12 +164,7 @@ class NoiseBlock(nn.Module):
 
         # Compute the standard deviation of the noise for each node
         std = torch.sqrt(expanded_noise_power)
-        print("std")
-        print(std)
         noise = torch.randn_like(x, requires_grad=False) * std
-
-        print("noise")
-        print(noise)
 
         return noise
 
@@ -182,9 +182,6 @@ class NoiseBlock(nn.Module):
 
         # Generate noise based on the SNR and batch attribute
         noise = self.generate_noise(x, batch=batch, snr_db=snr_db)
-        print(snr_db)
-        print("x")
-        print(x)
 
         # Add the noise to the input features
         x = x + noise

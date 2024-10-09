@@ -1,6 +1,6 @@
 defaults:
   - dataset: imdb_binary
-  - my_model: model_config
+  - my_model: mlp_bottleneck
   - dgm: new_dgm_conf
   - pooling: topk_conf
   - training: train_conf

@@ -169,6 +169,8 @@ class Model_channel(pl.LightningModule):
         #AWG (ADDITIVE WHITE GAUSSIAN) NOISE
         # what if we don't take into account the noise during training?
 
+        # print(f'before noise {self.snr_db}')
+        # print(x)
         if self.noisy_training == True: 
             x = self.noise(x, batch, self.snr_db)
 
@@ -180,7 +182,8 @@ class Model_channel(pl.LightningModule):
             print('Invalid self.noisy_training value')
             print(f"self.noisy_training: {self.noisy_training} (type: {type(self.noisy_training)})")
 
-
+        # print(f'after noise {self.snr_db}')
+        # print(x)
         x = self.receiver(x, edges)
 
 
