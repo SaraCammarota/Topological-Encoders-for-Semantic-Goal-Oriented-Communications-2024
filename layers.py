@@ -52,7 +52,7 @@ class DGM(nn.Module):
         self.std = std
         self.embed_f = embed_f
 
-    def forward(self, x, edges, batch, ptr):
+    def forward(self, x, edges, batch, ptr = None):
 
         """
         x: data
@@ -176,7 +176,7 @@ class NoiseBlock(nn.Module):
         """
         if snr_db is None:
             # Sample SNR from a uniform distribution between -10 and 10 dB.
-            snr_db = torch.randint(-10, 10, (1,))
+            snr_db = torch.randint(-5, -4, (1,))
         else:
             snr_db = torch.tensor(snr_db).unsqueeze(0)
 
@@ -221,7 +221,7 @@ class PerceiverNoiseBlock(nn.Module):
         """
         if snr_db is None:
             # Sample SNR from a uniform distribution between -10 and 10 dB.
-            snr_db = torch.randint(-10, 10, (1,))
+            snr_db = torch.randint(-5, -4, (1,))
         else:
             snr_db = torch.tensor(snr_db).unsqueeze(0)
 
@@ -452,7 +452,7 @@ class DGM_Lev(nn.Module):
 
     def __init__(self, embed_f, k=None, distance="euclidean"):
         super(DGM_Lev, self).__init__()
-        self.temperature = torch.nn.Parameter(torch.Tensor([0.1]))
+        self.temperature = torch.nn.Parameter(torch.Tensor([0.1]))    #set again to 0.1
         self.eps = 1e-6
 
 
@@ -466,13 +466,17 @@ class DGM_Lev(nn.Module):
     def forward(self, x, A, not_used=None, fixedges=None):
         
         x = self.embed_f(x,A)  
+        # num_edges = A.shape[1]/2
+        # conn = num_edges/(x.shape[0]**2)
+        
         dist_mat = torch.sum((x - x.unsqueeze(1)) **2, dim = -1) + self.eps 
         probs = torch.exp(-self.temperature * dist_mat)
         probs = torch.triu(probs, diagonal=1)
-        probs = torch.cat([probs.unsqueeze(-1), (1 - probs).unsqueeze(-1)], dim=-1)
-
+        probs = torch.cat([probs.unsqueeze(-1), (1 - probs).unsqueeze(-1)], dim=-1)    # shape: (2, n_nodes, n_nodes)
+        # print(probs)
         logits = torch.log(probs + self.eps)
-        A = torch.nn.functional.gumbel_softmax(logits + self.eps, tau=self.temperature, hard=True, dim= -1)[:,:, 0]
+        A = torch.nn.functional.gumbel_softmax(logits + self.eps, tau=self.temperature, hard=True, dim= -1)[:,:, 0]   # sample across last dim i.e. wether the edge is there or not
+        # print(A)
         A = (torch.triu(A, diagonal=1) + torch.triu(A, diagonal=1).T) #A + A.T
         a_shape = A.shape[0]
         diag = torch.eye(a_shape).type_as(A)
@@ -480,6 +484,14 @@ class DGM_Lev(nn.Module):
         A = A * (ones - diag) + diag
 
         edge_index, edge_weight = dense_to_sparse(A)
+        # if self.training == True:
+
+        #     if edge_index.shape[1] < x.shape[0]**2:
+        #         print('not fully connected missing edges')
+        #         print(f"Starting connectivity: {conn}")
+        #         print(f"actual connectivity: {(edge_index.shape[1]/2)/(x.shape[0]**2)}")
+
+
   
         return x, edge_index, edge_weight
 

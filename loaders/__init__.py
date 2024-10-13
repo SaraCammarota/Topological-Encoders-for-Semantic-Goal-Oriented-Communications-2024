@@ -3,13 +3,15 @@ from .graphloader import (
     
     GraphLoader,
     PreProcessor,
-    TBXDataloader
+    TBXDataloader,
+    MNISTDataModule
     
 )
 
 __all__ = [
     "GraphLoader",
     "PreProcessor",
-    "TBXDataloader"
+    "TBXDataloader",
+    "MNISTDataModule"
 
 ]

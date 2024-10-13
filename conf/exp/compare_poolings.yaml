@@ -2,8 +2,11 @@
 
 # pooling_ratios: [0.1, 0.25, 0.5, 0.75, 0.99]
 pooling_ratios: [0.04, 0.08, 0.17, 0.33, 0.99]
-# secondo me pooling ratios più interessanti sarebbero 1/24, 1/12, 1/6, 1/3, 0.99
-pool_methods: ['asa', 'sag', 'topk', 'mlp_bottleneck', 'perceiver']
-# pool_methods: ['asa', 'sag', 'topk']
+# pooling_ratios: [0.17]
+# pool_methods: ['perceiver']
+# pool_methods: ['mlp_bottleneck']
+pool_methods: ['asa', 'sag', 'topk', 'perceiver', 'mlp_bottleneck']
+# snr_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
 snr_values: [-30, -20, -10, -5, 0, 5, 10, 20, 30]
-num_trials: 20
+num_trials: 5
+# snr_values: [-10, -5, 0, 5, 10]

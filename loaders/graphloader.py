@@ -1218,3 +1218,131 @@ def collate_fn(batch):
         batch["cell_statistics"] = torch.Tensor(cell_statistics).long()
 
     return batch
+
+import torch
+from torch.utils.data import DataLoader, Dataset, Subset
+from torchvision import datasets, transforms
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+# Custom class to store data with attribute access
+class DataBatch:
+    def __init__(self, x, y, batch, edge_index):
+        self.x = x  # Shape: [total_num_pixels_in_batch, 1]
+        self.y = y  # Shape: [total_num_pixels_in_batch]
+        self.batch = batch  # Shape: [total_num_pixels_in_batch]
+        self.edge_index = edge_index  # Shape: [2, total_num_pixels_in_batch]
+
+# Custom collate function to handle DataBatch objects
+def custom_collate_fn(batch):
+    """
+    Custom collate function to combine DataBatch objects into a single batch.
+    Args:
+    - batch (list of DataBatch): List of individual DataBatch objects.
+
+    Returns:
+    - Combined DataBatch with batched x, y, batch, and edge_index tensors.
+    """
+    # Stack the individual components of the batch and flatten into 2D tensors
+    x = torch.cat([item.x for item in batch], dim=0)  # Shape: [total_num_pixels_in_batch, 1]
+    y = torch.tensor([item.y for item in batch])
+
+    # Generate the batch index tensor: [0,0,0,...,0, 1,1,1,...,1, ..., batch_size-1]
+    batch_size = len(batch)
+    num_pixels = batch[0].x.shape[0]
+    batch_indices = torch.arange(batch_size).repeat_interleave(num_pixels)  # Shape: [total_num_pixels_in_batch]
+
+    # Create self-loop edges for the entire batch
+    total_num_pixels = batch_size * num_pixels
+    row = torch.arange(total_num_pixels)  # Row indices for each pixel in the batch
+    col = row.clone()  # Self-loops, so column index is the same as row index
+    edge_index = torch.stack([row, col], dim=0)  # Shape: [2, total_num_pixels]
+
+    return DataBatch(x, y, batch_indices, edge_index)
+
+# Custom PyTorch Dataset with data.x, data.y, data.batch attributes
+class CustomMNISTDataset(Dataset):
+    def __init__(self, dataset):
+        """
+        CustomMNISTDataset for MNIST.
+        Args:
+        - dataset (torch.utils.data.Subset): The filtered dataset containing only the desired labels.
+        """
+        self.dataset = dataset
+        self.num_samples = len(self.dataset)
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        # Extract image and label from the dataset using the subset index
+        image, label = self.dataset[idx]
+
+        # Flatten the image and add the extra dimension: [num_pixels, 1]
+        x = image.view(-1, 1)  # Shape: [num_pixels, 1] (e.g., [196, 1] for 14x14)
+
+        # Return a DataBatch object without assigning a batch index yet
+        return DataBatch(x, label, None, None)
+
+
+# Modified MNISTDataModule to integrate the Custom Dataset and Collate Function
+class MNISTDataModule(pl.LightningDataModule):
+    def __init__(self, data_dir='./data', labels_to_include=[0, 1], batch_size=64, img_size=14):
+        super().__init__()
+        self.data_dir = data_dir
+        self.labels_to_include = labels_to_include
+        self.batch_size = batch_size
+        self.img_size = img_size
+        self.mean = None
+        self.std = None
+
+    def prepare_data(self):
+        # Download the MNIST dataset
+        datasets.MNIST(root=self.data_dir, train=True, download=True)
+        datasets.MNIST(root=self.data_dir, train=False, download=True)
+
+    def setup(self, stage=None):
+        # Load the raw MNIST training dataset without normalization
+        raw_train_dataset = datasets.MNIST(root=self.data_dir, train=True, download=False, transform=transforms.ToTensor())
+
+        # Calculate mean and std dynamically from the raw dataset
+        self.mean, self.std = self.compute_mean_std(raw_train_dataset)
+
+        # Define transformations with resizing and normalization
+        transform = transforms.Compose([
+            transforms.Resize((self.img_size, self.img_size)),  # Resize images to the desired shape
+            transforms.ToTensor(),
+            transforms.Normalize((self.mean,), (self.std,))
+        ])
+
+        # Load the training and testing datasets with transformations
+        full_train_dataset = datasets.MNIST(root=self.data_dir, train=True, download=False, transform=transform)
+        full_test_dataset = datasets.MNIST(root=self.data_dir, train=False, download=False, transform=transform)
+
+        # Filter datasets to include only the specified labels (e.g., 0 and 1)
+        train_dataset = self.filter_by_label(full_train_dataset, self.labels_to_include)
+        test_dataset = self.filter_by_label(full_test_dataset, self.labels_to_include)
+
+        # Wrap them using the custom dataset structure
+        self.train_dataset = CustomMNISTDataset(train_dataset)
+        self.test_dataset = CustomMNISTDataset(test_dataset)
+
+    def compute_mean_std(self, dataset):
+        # Calculate mean and std by loading all the data at once
+        loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+        data = next(iter(loader))[0]  # Get all images in a single batch
+        return data.mean().item(), data.std().item()
+
+    def filter_by_label(self, dataset, labels_to_include):
+        # Filter out the indices of the dataset containing only the specified labels
+        indices = [i for i, label in enumerate(dataset.targets) if label in labels_to_include]
+        return Subset(dataset, indices)
+
+    def train_dataloader(self):
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=custom_collate_fn)
+
+    def val_dataloader(self):
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=custom_collate_fn)
+
+    def test_dataloader(self):
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=custom_collate_fn)

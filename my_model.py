@@ -7,6 +7,7 @@ from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, DGM_c, DGM_c_batch, DGM_Lev
 from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 import hydra
 from omegaconf import DictConfig
+from torchmetrics.audio import SignalNoiseRatio
 
 
 
@@ -117,10 +118,9 @@ class Model_channel(pl.LightningModule):
         '''
         data: a batch of data. Must have attributes: x, batch, ptr
         '''
-
         x = data.x.detach()
         batch = data.batch_0
-        ptr = data.ptr
+        # ptr = data.ptr
         x = self.pre(x)
 
         if self.skip is not None: 
@@ -129,23 +129,24 @@ class Model_channel(pl.LightningModule):
         # LTI
 
         if self.dgm_name == 'alpha_dgm':
-            x_aux, edges, ne_probs = self.graph_f(x, data["edge_index"], batch, ptr)  #x, edges_hat, logprobs
+            x_aux, edges, ne_probs = self.graph_f(x, data.edge_index, batch)  #x, edges_hat, logprobs
             x = self.gnn(x, edges)
 
         elif self.dgm_name == 'topk_dgm':
 
-            x_aux, edges, edge_weights = self.graph_f(x, data["edge_index"], batch) 
+            x_aux, edges, edge_weights = self.graph_f(x, data.edge_index, batch) 
             x = self.gnn(x, edges, edge_weights)
             
         elif self.dgm_name == 'no_dgm': 
-            # x_aux = self.graph_f(x, data["edge_index"]) 
-            edges = data["edge_index"]
+            # x_aux = self.graph_f(x, data.edge_index) 
+            edges = data.edge_index
             ne_probs = None
             x = self.gnn(x, edges)
 
         elif self.dgm_name == 'new_dgm': 
 
-            x_aux, edges, edge_weights = self.graph_f(x, data["edge_index"], batch) 
+            x_aux, edges, edge_weights = self.graph_f(x, data.edge_index, batch) 
+            # x_aux, edges, edge_weights = self.graph_f(x_aux, edges, batch) 
             x = self.gnn(x, edges, edge_weights)
 
         # # FEATURE EXTRACTION -- moved above
@@ -177,6 +178,10 @@ class Model_channel(pl.LightningModule):
         elif self.noisy_training == False:
             if self.training == False:
                 x = self.noise(x, batch, self.snr_db)
+                # snrmod = SignalNoiseRatio()
+                # print(f'this is the true snr {snrmod(x_n, x)}')
+                # x = x_n
+
 
         else:
             print('Invalid self.noisy_training value')
@@ -196,7 +201,7 @@ class Model_channel(pl.LightningModule):
 
     def configure_optimizers(self):
         if self.hparams["optimizer"] == "adam":
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams["lr"])
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams["lr"], weight_decay=1e-3)
         elif self.hparams["optimizer"] == 'sgd':
             optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams["lr"], momentum=0.9)
         else:
@@ -211,6 +216,7 @@ class Model_channel(pl.LightningModule):
        
         pred, _ = self(batch)
         train_lab = batch.y
+
 
         tr_loss = F.cross_entropy(pred, train_lab)
 

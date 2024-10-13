@@ -12,7 +12,7 @@ from layers import MLP, GNN, DGM, NoiseBlock, DGM_d, PerceiverNoiseBlock
 from torch_geometric.nn.pool import TopKPooling, EdgePooling, SAGPooling, ASAPooling
 from torch_geometric.nn import knn_graph
 
-
+from torchmetrics.audio import SignalNoiseRatio
 
 
 
@@ -60,7 +60,7 @@ class MLP_KMeans(pl.LightningModule):
         '''
         
         x = data.x.detach()
-        batch = data.batch_0
+        batch = data.batch
         ptr = data.ptr
 
         x = self.pre(x)
@@ -219,7 +219,7 @@ class MLP_PCA(pl.LightningModule):
         '''
 
         x = data.x.detach()
-        batch = data.batch_0
+        batch = data.batch
         ptr = data.ptr
 
         x = self.pre(x)
@@ -347,7 +347,7 @@ class Perceiver_channel(pl.LightningModule):
         
         self.noisy_training = hparams["noisy_training"]
         self.noise = PerceiverNoiseBlock()
-        self.snr_db = None    # in this way, a different snr value is sampled at every forward pass
+        self.snr_db = hparams["snr_db"]    
         
         #self.post = MLP(hparams['post_layers'], dropout= hparams["dropout"])
         self.post = nn.Linear(self.num_features, self.num_classes)
@@ -379,7 +379,7 @@ class Perceiver_channel(pl.LightningModule):
 
         x = data.x.detach()
         batch = data.batch_0
-        ptr = data.ptr
+        # ptr = data.ptr
 
         b = max(batch) + 1
         latents = repeat(self.latents, "n d -> b n d", b=b)
@@ -395,7 +395,9 @@ class Perceiver_channel(pl.LightningModule):
 
         elif self.noisy_training == False:
             if self.training == False:
+
                 x = self.noise(x, batch, self.snr_db)
+
 
         else:
             print('Invalid self.noisy_training value')
@@ -501,12 +503,12 @@ class MLP_Bottleneck(pl.LightningModule):
 
         self.pooling_ratio = hparams["ratio"]
         bottleneck = max(1, round(self.pooling_ratio * hparams["num_features"]))
-        self.pre = MLP(hparams["pre_layers"] + [bottleneck], dropout = hparams["dropout"])   
+        self.pre = MLP([hparams["num_features"]] + [bottleneck], dropout = hparams["dropout"])   
 
 
         self.noisy_training = hparams["noisy_training"]
         self.noise = NoiseBlock()
-        self.snr_db = None    # in this way, a different snr value is sampled at every forward pass
+        self.snr_db = hparams["snr_db"]   
         
         self.post = MLP(hparams['post_layers'], dropout= hparams["dropout"])
 
@@ -535,7 +537,7 @@ class MLP_Bottleneck(pl.LightningModule):
         
         x = data.x.detach()
         batch = data.batch_0
-        ptr = data.ptr
+        # ptr = data.ptr
 
         x = self.pre(x)
 
@@ -545,6 +547,8 @@ class MLP_Bottleneck(pl.LightningModule):
         elif self.noisy_training == False:
             if self.training == False:
                 x = self.noise(x, batch, self.snr_db)
+                
+
 
         else:
             print('Invalid self.noisy_training value')
@@ -699,7 +703,7 @@ class Knn_channel(pl.LightningModule):
         '''
         
         x = data.x.detach()
-        batch = data.batch_0
+        batch = data.batch
         ptr = data.ptr
         x = self.pre(x)
         
@@ -990,3 +994,4 @@ class No_feat_ext(pl.LightningModule):
             on_epoch=True,
             batch_size=test_lab.size(0),
         )
+

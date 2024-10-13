@@ -3,14 +3,14 @@ loader:
   _target_: topobenchmarkx.data.loaders.GraphLoader
   parameters: 
     data_domain: graph
-    data_type: MNISTSuperpixels
-    data_name: MNISTSuperpixels
+    data_type: MNIST
+    data_name: MNIST
     data_dir: ${paths.data_dir}/${dataset.loader.parameters.data_domain}/${dataset.loader.parameters.data_type}
 
 # Dataset parameters
 parameters:
   num_features: 1 
-  num_classes: 10
+  num_classes: 2
   task: classification
   loss_type: cross_entropy
   monitor_metric: accuracy
@@ -29,7 +29,7 @@ split_params:
 
 # Dataloader parameters
 dataloader_params:
-  batch_size: 16
+  batch_size: 64
   num_workers: 0
   pin_memory: False
 
